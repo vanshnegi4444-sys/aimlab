@@ -36,9 +36,18 @@ static const std::vector<ScenarioInfo> kScenarios = {
         "MAP-03",
         "Haven A: Long & Site Angle Slicing",
         ScenarioCategory::MapPreAim,
-        "Push A Long onto Haven A Site. Clear close corner, site stack, Heaven elevated sniper window, Hell under-window, and Short flank.",
+        "Push A Long onto Haven A Site. Clear close corner, ramp top, site default box, Heaven elevated sniper window, Hell under-window, Short flank, and CT connector.",
         "Trains crosshair elevation flick from Hell (ground) to Heaven (elevated sniper window).",
-        60.0f, 0.14f, 15.0f, 5, false, true
+        60.0f, 0.14f, 15.0f, 7, false, true
+    },
+    ScenarioInfo{
+        ScenarioId::HavenB_PreAim,
+        "MAP-04",
+        "Haven B: Mid Courtyard to B Site Clearing",
+        ScenarioCategory::MapPreAim,
+        "Push across Haven Mid Courtyard up the steps into B Site. Clear Garage/Mid Doors, B Site Left Entry, B Site Right Pillar, C Link Archway, A Link Doorway, and Back Site Gong.",
+        "Trains wide courtyard entry pre-aiming, step elevation changes, and rapid left-to-right site clearing.",
+        60.0f, 0.14f, 15.0f, 6, false, true
     },
     ScenarioInfo{
         ScenarioId::Gridshot,

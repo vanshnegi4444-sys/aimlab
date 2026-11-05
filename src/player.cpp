@@ -34,7 +34,6 @@ void Player::update(double dt, const PlayerInput& input, const Camera& cam, cons
 
     // Movement direction from camera yaw
     float radYaw = radians(cam.yawDeg);
-    // Camera forward on XZ: (sin(yaw), -cos(yaw))
     Vec3 fwd   = {  std::sin(radYaw), 0.0f, -std::cos(radYaw) };
     Vec3 right = {  std::cos(radYaw), 0.0f,  std::sin(radYaw) };
 
@@ -49,12 +48,12 @@ void Player::update(double dt, const PlayerInput& input, const Camera& cam, cons
         moveWish = moveWish * (1.0f / wishLen);
         Vec3 targetVel = moveWish * maxSpd;
         // Fast Valorant acceleration (instant counter-strafe feel)
-        float accel = isGrounded ? 55.0f : 15.0f;
+        float accel = isGrounded ? 55.0f : 18.0f;
         vel.x += (targetVel.x - vel.x) * std::min(1.0f, dtF * accel);
         vel.z += (targetVel.z - vel.z) * std::min(1.0f, dtF * accel);
     } else {
-        // Friction / deceleration
-        float friction = isGrounded ? 45.0f : 5.0f;
+        // Snappy counter-strafe braking / friction
+        float friction = isGrounded ? 48.0f : 6.0f;
         vel.x -= vel.x * std::min(1.0f, dtF * friction);
         vel.z -= vel.z * std::min(1.0f, dtF * friction);
         if (std::abs(vel.x) < 0.05f) vel.x = 0.0f;
@@ -72,39 +71,47 @@ void Player::update(double dt, const PlayerInput& input, const Camera& cam, cons
         vel.y -= kGravity * dtF;
     }
 
-    // Horizontal movement test with floor / wall collision
+    // Horizontal movement test with floor + wall collision
     Vec3 newPos = pos;
     newPos.x += vel.x * dtF;
     newPos.z += vel.z * dtF;
 
     if (map && map->isLoaded()) {
+        // Resolve cylinder collision against vertical walls first
+        map->resolveWallCollision(newPos.x, newPos.z, pos.y, 0.35f);
+
         float floorY = 0.0f;
         if (map->getFloorHeight(newPos.x, newPos.z, pos.y, floorY)) {
-            // Valid floor found, accept move
             pos.x = newPos.x;
             pos.z = newPos.z;
-
             if (isGrounded) {
-                // Smooth step up/down stairs
                 pos.y += (floorY - pos.y) * std::min(1.0f, dtF * 25.0f);
             }
         } else {
-            // Check sliding along X or Z axis
+            // Slide along X or Z axis
             float fx = 0.0f, fz = 0.0f;
             if (map->getFloorHeight(newPos.x, pos.z, pos.y, fx)) {
                 pos.x = newPos.x;
+                vel.z = 0.0f;
                 if (isGrounded) pos.y += (fx - pos.y) * std::min(1.0f, dtF * 25.0f);
             } else if (map->getFloorHeight(pos.x, newPos.z, pos.y, fz)) {
                 pos.z = newPos.z;
+                vel.x = 0.0f;
                 if (isGrounded) pos.y += (fz - pos.y) * std::min(1.0f, dtF * 25.0f);
             } else {
-                // Wall hit: zero velocity in that direction
-                vel.x = 0.0f;
-                vel.z = 0.0f;
+                // Safety fallback: if current position itself is off-mesh, allow free movement to re-enter
+                float curFloor = 0.0f;
+                if (!map->getFloorHeight(pos.x, pos.z, pos.y, curFloor)) {
+                    pos.x = newPos.x;
+                    pos.z = newPos.z;
+                } else {
+                    vel.x = 0.0f;
+                    vel.z = 0.0f;
+                }
             }
         }
 
-        // Vertical collision
+        // Vertical collision (landing from jump or step-down)
         if (!isGrounded) {
             pos.y += vel.y * dtF;
             float groundY = 0.0f;
@@ -128,4 +135,3 @@ void Player::update(double dt, const PlayerInput& input, const Camera& cam, cons
         }
     }
 }
-

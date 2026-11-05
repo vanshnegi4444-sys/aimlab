@@ -425,7 +425,7 @@ void Trainer::update(double now, double dt, const Camera& cam, bool movingLeft, 
             else if (m_playerVelX < 0.0f)
                 m_playerVelX = std::min(0.0f, m_playerVelX + step);
         }
-        m_playerPosX += m_playerVelX * static_cast<float>(dt);
+        m_playerPosX = std::clamp(m_playerPosX + m_playerVelX * static_cast<float>(dt), -6.0f, 6.0f);
     }
 
     // 2. Scenario specific target movement & behaviors
@@ -462,14 +462,20 @@ void Trainer::update(double now, double dt, const Camera& cam, bool movingLeft, 
     } else if (m_scenarioId == ScenarioId::AngleHold) {
         Target& t = m_targets[0];
         if (m_botIsHidden && now >= m_nextPeekTime) {
-            // Bot swings out from cover!
+            // Bot swings out from behind the 3D cover wall at Valorant run speed (6.75 m/s)!
             m_botIsHidden = false;
-            t.center = { m_coverWallX + 0.75f, 0.0f, -m_wallDist }; // peeking spot
+            t.center = { m_coverWallX - 0.25f, 0.0f, -m_wallDist };
+            t.velocity = { 6.75f, 0.0f, 0.0f };
+            t.maxX = m_coverWallX + 0.85f;
             t.alive = true;
             t.isPeeking = true;
             t.peekTime = now;
-            t.peekDuration = 0.38; // 380ms reaction window
+            t.spawnTime = now;
+            t.peekDuration = 0.58; // 160ms swing + 420ms reaction window
         } else if (!m_botIsHidden && t.isPeeking) {
+            if (t.center.x < t.maxX) {
+                t.center.x = std::min(t.maxX, t.center.x + t.velocity.x * static_cast<float>(dt));
+            }
             if (now - t.peekTime > t.peekDuration) {
                 // Player failed to react in time! Bot shot player / escaped
                 t.alive = false;
@@ -549,10 +555,18 @@ int Trainer::shoot(double now, const Camera& cam) {
     float hitT   = 0.0f;
     float hitDistFromCenter = 0.0f;
     float targetRad = m_radius;
+    int   hitRegion = 0; // 2 = head, 1 = body
+
+    bool humanoid = (m_scenarioId == ScenarioId::HeadshotLine ||
+                     m_scenarioId == ScenarioId::CounterStrafeDrill ||
+                     m_scenarioId == ScenarioId::AngleHold ||
+                     m_scenarioId == ScenarioId::OffAngleStrafeConfirm);
 
     for (int i = 0; i < m_activeTargetCount; ++i) {
         const Target& t = m_targets[i];
         if (!t.alive) continue;
+
+        float effRad = humanoid ? std::max(t.radius, 0.15f) : t.radius;
 
         Vec3  toC = t.center - eye;
         float tt  = dot(toC, dir);
@@ -560,11 +574,23 @@ int Trainer::shoot(double now, const Camera& cam) {
 
         Vec3  p = eye + dir * tt;
         float d = length(p - t.center);
-        if (d <= t.radius && (hitIdx < 0 || tt < hitT)) {
+        if (d <= effRad && (hitIdx < 0 || tt < hitT)) {
             hitIdx = i;
             hitT   = tt;
             hitDistFromCenter = d;
-            targetRad = t.radius;
+            targetRad = effRad;
+            hitRegion = 2; // Head / center hit
+        } else if (humanoid) {
+            // Check 3D Jett body cylinder (y in [center.y - 1.47, center.y - 0.15], radius 0.24m)
+            float dx = p.x - t.center.x;
+            float dy = p.y - t.center.y;
+            if (std::abs(dx) <= 0.24f && dy >= -1.47f && dy <= -0.15f && (hitIdx < 0 || tt < hitT)) {
+                hitIdx = i;
+                hitT   = tt;
+                hitDistFromCenter = std::abs(dx);
+                targetRad = 0.24f;
+                hitRegion = 1; // Body shot
+            }
         }
     }
 
@@ -594,7 +620,7 @@ int Trainer::shoot(double now, const Camera& cam) {
         m_ttkSum += ttk;
         ++m_ttkCount;
 
-        bool isHead = (t.hitRegion == 0) || (hitDistFromCenter <= targetRad * 0.45f);
+        bool isHead = humanoid ? (hitRegion == 2) : ((t.hitRegion == 0) || (hitDistFromCenter <= targetRad * 0.45f));
         if (isHead) ++m_headshots;
 
         // Scoring: base hit + headshot bonus + speed bonus

@@ -72,6 +72,7 @@ public:
     int          streak()        const { return m_streak; }
 
     // ---- Movement & Counter-Strafe stats ----
+    float        playerPosX()    const { return m_playerPosX; }
     float        playerSpeed()   const { return std::abs(m_playerVelX); }
     bool         isPlayerStopped() const { return std::abs(m_playerVelX) < 1.85f; } // <27.5% of 6.75 m/s
     float        stopAccuracy()  const; // % of shots fired while fully stopped
@@ -90,6 +91,7 @@ public:
     int          targetCount()   const { return m_activeTargetCount; }
     const Target& target(int i)  const { return m_targets[i]; }
     float        targetRadius()  const { return m_radius; }
+    float        wallDist()      const { return m_wallDist; }
 
     // Angle hold obstacle wall X position (for drawing cover wall)
     float        coverWallX()    const { return m_coverWallX; }

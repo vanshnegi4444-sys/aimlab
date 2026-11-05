@@ -181,9 +181,11 @@ static void enterPlay(Trainer& trainer, Camera& camera, const Settings& s, Scena
         MapCourseId cid = MapCourseId::AscentB_Clear;
         if (scId == ScenarioId::BindB_PreAim) cid = MapCourseId::BindB_LongClear;
         else if (scId == ScenarioId::HavenA_PreAim) cid = MapCourseId::HavenA_Clear;
+        else if (scId == ScenarioId::HavenB_PreAim) cid = MapCourseId::HavenB_Clear;
 
         g_preAimCourse.start(cid, glfwGetTime());
         ensureMapLoaded(g_preAimCourse.mapBinPath());
+        g_preAimCourse.snapToMapFloors(g_mapMesh);
 
         g_player.spawn(g_preAimCourse.playerSpawnPos(), g_preAimCourse.playerSpawnYaw());
         camera.pos = g_player.eyePos();
@@ -335,7 +337,7 @@ int main() {
             if (g_mode == Mode::Play) {
                 if (g_isMapCourseActive) {
                     PreAimResult pRes;
-                    int res = g_preAimCourse.shoot(now, g_player.eyePos(), camera.forward(), g_player.isAccurate(), pRes);
+                    int res = g_preAimCourse.shoot(now, g_player.eyePos(), camera.forward(), g_player.isAccurate(), pRes, &g_mapMesh);
                     if (s.enableHitSound) {
                         if (res == 2) audio::playHeadshot(s.hitSoundVolume);
                         else if (res == 1) audio::playHit(s.hitSoundVolume);
@@ -354,7 +356,7 @@ int main() {
             if (g_isMapCourseActive) {
                 g_player.update(dt, pInput, camera, &g_mapMesh);
                 camera.pos = g_player.eyePos();
-                g_preAimCourse.update(now, dt, g_player.eyePos(), camera.pitchDeg, camera.yawDeg);
+                g_preAimCourse.update(now, dt, g_player.eyePos(), camera.pitchDeg, camera.yawDeg, &g_mapMesh);
                 if (g_preAimCourse.isComplete()) {
                     enterPreAimResults();
                 }
@@ -362,6 +364,7 @@ int main() {
                 bool movingLeft  = (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS);
                 bool movingRight = (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS);
                 trainer.update(now, dt, camera, movingLeft, movingRight);
+                camera.pos.x = trainer.playerPosX();
                 if (trainer.isComplete()) {
                     enterResults(trainer, newBest);
                 }
@@ -381,18 +384,22 @@ int main() {
         Mat4 viewProj = mat4Mul(camera.projMatrix(aspect), camera.viewMatrix());
 
         if (g_isMapCourseActive) {
-            glClearColor(0.12f, 0.14f, 0.18f, 1.0f); // Valorant sky tint
+            glClearColor(0.15f, 0.18f, 0.23f, 1.0f); // Valorant sky tint
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            renderer.renderMap(viewProj, g_mapMesh);
-            renderer.renderPreAimBots(viewProj, g_botMesh, g_preAimCourse);
+            renderer.renderMap(viewProj, camera, g_mapMesh);
+            renderer.renderPreAimBots(viewProj, camera, g_botMesh, g_preAimCourse);
         } else {
-            glClearColor(0.02f, 0.02f, 0.03f, 1.0f);
+            glClearColor(0.06f, 0.07f, 0.10f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            renderer.renderWall(viewProj, s.wallDist);
+            float activeWallDist = (g_mode == Mode::Play) ? trainer.wallDist() : s.wallDist;
+            bool  hasCover       = (g_mode == Mode::Play) ? trainer.hasCoverWall() : false;
+            float coverX         = (g_mode == Mode::Play) ? trainer.coverWallX() : -1.0f;
+
+            renderer.renderWall(viewProj, camera, activeWallDist, hasCover, coverX);
             if (g_mode == Mode::Play) {
-                renderer.renderTargets(viewProj, trainer, camera);
+                renderer.renderTargets(viewProj, trainer, camera, &g_botMesh);
             }
         }
 

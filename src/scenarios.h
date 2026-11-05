@@ -15,6 +15,7 @@ enum class ScenarioId {
     AscentB_PreAim = 0,
     BindB_PreAim,
     HavenA_PreAim,
+    HavenB_PreAim,
     Gridshot,
     GridshotLong,
     Sixshot,
@@ -33,7 +34,8 @@ enum class ScenarioId {
 inline bool isMapPreAim(ScenarioId id) {
     return id == ScenarioId::AscentB_PreAim ||
            id == ScenarioId::BindB_PreAim ||
-           id == ScenarioId::HavenA_PreAim;
+           id == ScenarioId::HavenA_PreAim ||
+           id == ScenarioId::HavenB_PreAim;
 }
 
 const char* getCategoryName(ScenarioCategory cat);

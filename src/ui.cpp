@@ -29,8 +29,9 @@ void ui::drawMenu(Settings& s, UiRequest& req, const RoutineManager& routine, in
             ImGui::Spacing();
 
             const auto& scenarios = getAllScenarios();
-            for (size_t i = 0; i < 3; ++i) {
+            for (size_t i = 0; i < scenarios.size(); ++i) {
                 const auto& sc = scenarios[i];
+                if (!isMapPreAim(sc.id)) continue;
                 bool isSelected = (s.activeScenario == sc.id);
 
                 char label[128];
@@ -131,8 +132,9 @@ void ui::drawMenu(Settings& s, UiRequest& req, const RoutineManager& routine, in
             const auto& scenarios = getAllScenarios();
             int currentIdx = static_cast<int>(s.activeScenario);
 
-            for (size_t i = 3; i < scenarios.size(); ++i) {
+            for (size_t i = 0; i < scenarios.size(); ++i) {
                 const auto& sc = scenarios[i];
+                if (isMapPreAim(sc.id)) continue;
                 bool isSelected = (currentIdx == static_cast<int>(i));
 
                 char label[128];
@@ -287,6 +289,8 @@ void ui::drawPreAimOverlay(const PreAimCourse& course, const Settings& /*s*/, co
         } else {
             ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.2f, 1.0f), "CROSSHAIR LEVEL: TOO HIGH (%.1f deg)", err);
         }
+        float reactProg = course.activeBotReactionProgress();
+        ImGui::ProgressBar(reactProg, ImVec2(240.0f, 12.0f), reactProg < 1.0f ? "Bot Reaction Timer" : "BOT FIRED!");
     } else {
         ImGui::TextDisabled("Slice corners with [A]/[D] to engage the next angle.");
     }
@@ -325,7 +329,6 @@ void ui::drawCrosshair(const Settings& s, const Trainer& t, float screenW, float
 
     dl->AddLine(ImVec2(c.x - gap - len, c.y), ImVec2(c.x - gap, c.y), col, th);
     dl->AddLine(ImVec2(c.x + gap, c.y), ImVec2(c.x + gap + len, c.y), col, th);
-    dl->AddLine(ImVec2(c.y - gap - len, c.y), ImVec2(c.y - gap, c.y), col, th);
     dl->AddLine(ImVec2(c.x, c.y - gap - len), ImVec2(c.x, c.y - gap), col, th);
     dl->AddLine(ImVec2(c.x, c.y + gap), ImVec2(c.x, c.y + gap + len), col, th);
 

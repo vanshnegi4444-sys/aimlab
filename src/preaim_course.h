@@ -8,25 +8,26 @@ enum class MapCourseId {
     AscentB_Clear,    // B Main to B Site Attack & Angle Slicing
     BindB_LongClear,  // B Long / Garden to B Site & Hookah
     HavenA_Clear,     // A Long to Heaven & Site Clear
+    HavenB_Clear,     // Mid Courtyard to B Site & Links
     Count
 };
 
 struct PreAimBot {
     std::string name;
     Vec3   pos{};            // foot position
-    float  yawDeg = 0.0f;    // facing direction
-    float  headRadius = 0.14f;
+    float  yawDeg     = 0.0f; // facing direction
+    float  headRadius = 0.15f;
     float  bodyRadius = 0.24f;
-    float  height     = 1.95f;
+    float  height     = 1.78f;
 
-    bool   alive     = true;
-    bool   hasSeenPlayer = false;
-    double firstSeenTime = 0.0;
-    double reactionLimit = 0.45; // seconds before bot fires back
-    bool   firedAtPlayer = false;
+    bool   alive          = true;
+    bool   hasSeenPlayer  = false;
+    double firstSeenTime  = 0.0;
+    double reactionLimit  = 0.55; // seconds of continuous exposure before bot fires back
+    bool   firedAtPlayer  = false;
 
     // Crosshair placement analytics on first sight
-    float  firstSightVertErrDeg = 0.0f; // negative = crosshair too low
+    float  firstSightVertErrDeg   = 0.0f; // negative = crosshair too low
     bool   hasFirstSightTelemetry = false;
 };
 
@@ -44,10 +45,11 @@ public:
     PreAimCourse();
 
     void start(MapCourseId courseId, double now);
-    void update(double now, double dt, const Vec3& playerEyePos, float playerPitchDeg, float playerYawDeg);
+    void snapToMapFloors(const MapMesh& map);
+    void update(double now, double dt, const Vec3& playerEyePos, float playerPitchDeg, float playerYawDeg, const MapMesh* map = nullptr);
 
     // Returns: 2 = headshot, 1 = bodyshot, 0 = miss, -1 = moving whiff
-    int shoot(double now, const Vec3& eyePos, const Vec3& fwdRay, bool isAccurate, PreAimResult& outResult);
+    int shoot(double now, const Vec3& eyePos, const Vec3& fwdRay, bool isAccurate, PreAimResult& outResult, const MapMesh* map = nullptr);
 
     MapCourseId courseId() const { return m_courseId; }
     std::string courseName() const;
@@ -74,6 +76,7 @@ private:
     void initAscentB();
     void initBindB();
     void initHavenA();
+    void initHavenB();
 
     MapCourseId m_courseId = MapCourseId::AscentB_Clear;
     Vec3        m_spawnPos{};
@@ -82,8 +85,8 @@ private:
     std::vector<PreAimBot>    m_bots;
     std::vector<PreAimResult> m_history;
 
-    int    m_activeBotIdx = -1;
+    int    m_activeBotIdx   = -1;
     float  m_currentVertErr = 0.0f;
-    int    m_damageTaken = 0;
+    int    m_damageTaken    = 0;
+    double m_lastNow        = 0.0;
 };
-

@@ -502,3 +502,4 @@ Execute the following verification steps after applying the changes:
      - Peeking around corner reveals Lane bot and Green Box bot standing upright, facing the corridor.
      - Crosshair on head registers a crisp headshot ding and destroys the bot.
    - Repeat for `[M-02] Bind B Long` and `[M-03] Haven A Long`.
+
