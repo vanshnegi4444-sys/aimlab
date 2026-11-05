@@ -181,6 +181,7 @@ static void enterPlay(Trainer& trainer, Camera& camera, const Settings& s, Scena
         MapCourseId cid = MapCourseId::AscentB_Clear;
         if (scId == ScenarioId::BindB_PreAim) cid = MapCourseId::BindB_LongClear;
         else if (scId == ScenarioId::HavenA_PreAim) cid = MapCourseId::HavenA_Clear;
+        else if (scId == ScenarioId::HavenB_PreAim) cid = MapCourseId::HavenB_Clear;
 
         g_preAimCourse.start(cid, glfwGetTime());
         ensureMapLoaded(g_preAimCourse.mapBinPath());

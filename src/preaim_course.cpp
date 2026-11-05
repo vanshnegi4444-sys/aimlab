@@ -11,6 +11,7 @@ std::string PreAimCourse::courseName() const {
         case MapCourseId::AscentB_Clear:   return "Ascent B: Main to Site Clearing";
         case MapCourseId::BindB_LongClear: return "Bind B: Long & Hookah Clearing";
         case MapCourseId::HavenA_Clear:    return "Haven A: Long & Site Angle Slicing";
+        case MapCourseId::HavenB_Clear:    return "Haven B: Corridor to Site Entry & Clear";
         default: return "Custom Map Course";
     }
 }
@@ -20,6 +21,7 @@ std::string PreAimCourse::mapBinPath() const {
         case MapCourseId::AscentB_Clear:   return "assets/maps/ascentB.bin";
         case MapCourseId::BindB_LongClear: return "assets/maps/bindB.bin";
         case MapCourseId::HavenA_Clear:    return "assets/maps/havenA.bin";
+        case MapCourseId::HavenB_Clear:    return "assets/maps/havenB.bin";
         default: return "assets/maps/ascentB.bin";
     }
 }
@@ -36,13 +38,17 @@ void PreAimCourse::start(MapCourseId courseId, double /*now*/) {
         case MapCourseId::AscentB_Clear:   initAscentB(); break;
         case MapCourseId::BindB_LongClear: initBindB(); break;
         case MapCourseId::HavenA_Clear:    initHavenA(); break;
+        case MapCourseId::HavenB_Clear:    initHavenB(); break;
         default: initAscentB(); break;
     }
 }
 
 void PreAimCourse::initAscentB() {
     m_spawnPos = { -20.0f, 1.0f, -50.0f };
-    m_spawnYaw = -135.0f;
+    // Faces the first bot (Lane Close Left Corner at -24.5, -58.5):
+    // yaw = atan2(-4.5, 8.5) ~ -28 deg. The old -135 deg faced away
+    // from every bot, so nothing was visible at spawn.
+    m_spawnYaw = -28.0f;
 
     PreAimBot b;
 
@@ -91,7 +97,9 @@ void PreAimCourse::initAscentB() {
 
 void PreAimCourse::initBindB() {
     m_spawnPos = { 108.0f, 3.0f, -32.0f };
-    m_spawnYaw = 180.0f;
+    // Faces the first bot (Garden Vista at 102, -40):
+    // yaw = atan2(-6, 8) ~ -37 deg. The old 180 deg faced away.
+    m_spawnYaw = -37.0f;
 
     PreAimBot b;
 
@@ -134,7 +142,9 @@ void PreAimCourse::initBindB() {
 
 void PreAimCourse::initHavenA() {
     m_spawnPos = { 90.0f, 0.0f, -30.0f };
-    m_spawnYaw = 180.0f;
+    // Faces the first bot (A Long Corner Peek at 95, -55):
+    // yaw = atan2(5, 25) ~ +11 deg. The old 180 deg faced away.
+    m_spawnYaw = 11.0f;
 
     PreAimBot b;
 
@@ -169,6 +179,51 @@ void PreAimCourse::initHavenA() {
     m_bots.push_back(b);
 }
 
+void PreAimCourse::initHavenB() {
+    // Bot/Spawn positions measured from the map itself
+    // (optimized/Maps/havenB.blend, Blender raycast floor scan):
+    // game coords = (blend_x, blend_z, -blend_y).
+    // Corridor floor is z ~ 1.0, site floor is z ~ 3.0 (ramp between them).
+    // Yaw values face the player's approach and are approximate:
+    // verify the bot models look right on the first Windows run.
+    m_spawnPos = { 24.0f, 1.0f, -60.0f };
+    // Faces the first bot (Ramp Top Duel at 18, -76):
+    // yaw = atan2(-6, 16) ~ -21 deg.
+    m_spawnYaw = -21.0f;
+
+    PreAimBot b;
+
+    b.name = "Ramp Top Duel";
+    b.pos = { 18.0f, 3.0f, -76.0f };
+    b.yawDeg = 160.0f;
+    b.reactionLimit = 0.45;
+    m_bots.push_back(b);
+
+    b.name = "Site Left Corner";
+    b.pos = { 14.0f, 3.0f, -90.0f };
+    b.yawDeg = 165.0f;
+    b.reactionLimit = 0.45;
+    m_bots.push_back(b);
+
+    b.name = "Site Default Box";
+    b.pos = { 30.0f, 3.0f, -100.0f };
+    b.yawDeg = -150.0f;
+    b.reactionLimit = 0.42;
+    m_bots.push_back(b);
+
+    b.name = "Back Site Corner";
+    b.pos = { 20.0f, 3.0f, -108.0f };
+    b.yawDeg = 180.0f;
+    b.reactionLimit = 0.45;
+    m_bots.push_back(b);
+
+    b.name = "Site Right Flank";
+    b.pos = { 12.0f, 3.0f, -88.0f };
+    b.yawDeg = 55.0f;
+    b.reactionLimit = 0.40;
+    m_bots.push_back(b);
+}
+
 int PreAimCourse::botsRemaining() const {
     int rem = 0;
     for (const auto& b : m_bots) {
@@ -192,9 +247,9 @@ void PreAimCourse::update(double now, double /*dt*/, const Vec3& playerEyePos, f
         float dist = length(toHead);
 
         // Simple frustum / line-of-sight check
-        if (dist > 65.0f) continue; // beyond engagement range
-
-        // Angle between player camera and bot
+        // NOTE: the reaction timer only runs while the bot is actually
+        // visible. If the player looks away, the timer resets, so the bot
+        // cannot "store up" unseen seconds and instant-fire on re-look.
         float radYaw = radians(playerYawDeg);
         float radPitch = radians(playerPitchDeg);
         Vec3 camFwd = {
@@ -206,44 +261,57 @@ void PreAimCourse::update(double now, double /*dt*/, const Vec3& playerEyePos, f
         Vec3 dirToHead = toHead * (1.0f / dist);
         float dotFwd = dot(camFwd, dirToHead);
 
-        // Within 70 degrees FOV cone
-        if (dotFwd > 0.35f) {
-            // Compute vertical pitch needed to hit head
-            float horizDist = std::sqrt(toHead.x * toHead.x + toHead.z * toHead.z);
-            float neededPitch = degrees(std::atan2(toHead.y, horizDist));
-            float vertErr = playerPitchDeg - neededPitch;
+        // Within 65 m and the 70-degree sight cone?
+        bool inCone = (dist <= 65.0f) && (dotFwd > 0.35f);
+        if (!inCone) {
+            bot.hasSeenPlayer = false;
+            bot.firstSeenTime = 0.0;
+            continue;
+        }
 
-            if (!bot.hasSeenPlayer) {
-                bot.hasSeenPlayer = true;
-                bot.firstSeenTime = now;
+        // Compute vertical pitch needed to hit head
+        float horizDist = std::sqrt(toHead.x * toHead.x + toHead.z * toHead.z);
+        float neededPitch = degrees(std::atan2(toHead.y, horizDist));
+        float vertErr = playerPitchDeg - neededPitch;
+
+        if (!bot.hasSeenPlayer) {
+            bot.hasSeenPlayer = true;
+            bot.firstSeenTime = now;
+            // Keep the very first sighting's telemetry; later re-peeks
+            // restart the timer but do not overwrite it.
+            if (!bot.hasFirstSightTelemetry) {
                 bot.firstSightVertErrDeg = vertErr;
                 bot.hasFirstSightTelemetry = true;
             }
+        }
 
-            if (dist < closestDist) {
-                closestDist = dist;
-                m_activeBotIdx = static_cast<int>(i);
-                m_currentVertErr = vertErr;
-            }
+        if (dist < closestDist) {
+            closestDist = dist;
+            m_activeBotIdx = static_cast<int>(i);
+            m_currentVertErr = vertErr;
+        }
 
-            // Reaction timer
-            if (!bot.firedAtPlayer) {
-                double elapsed = now - bot.firstSeenTime;
-                if (elapsed >= bot.reactionLimit) {
-                    bot.firedAtPlayer = true;
-                    m_damageTaken++;
-                }
+        // Reaction timer (only counts time the bot can see the player)
+        if (!bot.firedAtPlayer) {
+            double elapsed = now - bot.firstSeenTime;
+            if (elapsed >= bot.reactionLimit) {
+                bot.firedAtPlayer = true;
+                m_damageTaken++;
             }
         }
     }
 }
 
-float PreAimCourse::activeBotReactionProgress() const {
+float PreAimCourse::activeBotReactionProgress(double now) const {
     if (m_activeBotIdx < 0 || m_activeBotIdx >= static_cast<int>(m_bots.size())) return 0.0f;
     const auto& b = m_bots[m_activeBotIdx];
-    if (!b.hasSeenPlayer || !b.alive) return 0.0f;
-    // Normalized 0.0 to 1.0 until bot shoots
-    return std::min(1.0f, static_cast<float>((1.0 - (b.reactionLimit)) / b.reactionLimit));
+    if (!b.hasSeenPlayer || !b.alive || b.reactionLimit <= 0.0) return 0.0f;
+    // Fraction of the bot's reaction window used up since it first saw
+    // the player (0 = just spotted you, 1 = about to fire).
+    float p = static_cast<float>((now - b.firstSeenTime) / b.reactionLimit);
+    if (p < 0.0f) p = 0.0f;
+    if (p > 1.0f) p = 1.0f;
+    return p;
 }
 
 const std::string& PreAimCourse::activeBotName() const {

@@ -27,13 +27,20 @@ enum class ScenarioId {
     CounterStrafeDrill,
     AngleHold,
     OffAngleStrafeConfirm,
+    // Added 2026-11-05 (review round). Appended here, before Count, so
+    // every existing id keeps its number (best.txt keys off the id).
+    WideFlick180,
+    ReactiveTrack,
+    PeekersAdvantage,
+    HavenB_PreAim,
     Count
 };
 
 inline bool isMapPreAim(ScenarioId id) {
     return id == ScenarioId::AscentB_PreAim ||
            id == ScenarioId::BindB_PreAim ||
-           id == ScenarioId::HavenA_PreAim;
+           id == ScenarioId::HavenA_PreAim ||
+           id == ScenarioId::HavenB_PreAim;
 }
 
 const char* getCategoryName(ScenarioCategory cat);

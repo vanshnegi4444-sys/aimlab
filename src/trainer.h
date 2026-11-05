@@ -19,6 +19,7 @@ struct Target {
 
     // Movement / strafe params
     float  minX = -3.0f, maxX = 3.0f;
+    float  minY = -1.5f, maxY = 1.5f; // vertical bounds (Reactive Track)
     float  baseY = 0.0f;
 
     // Angle hold / peeking
@@ -107,6 +108,9 @@ private:
     void initCounterStrafeDrill(double now);
     void initAngleHold(double now);
     void initOffAngleStrafeConfirm(double now);
+    void initWideFlick180(double now);
+    void initReactiveTrack(double now);
+    void initPeekersAdvantage(double now);
 
     Vec3 slotPos(int slot) const;
     int  randomFreeSlot();
@@ -139,6 +143,15 @@ private:
     float  m_coverWallX = -1.2f;
     double m_nextPeekTime = 0.0;
     bool   m_botIsHidden  = true;
+
+    // Peeker's Advantage (R-03) state
+    int    m_peekSide = 1;        // +1 = peeked right (D), -1 = left (A)
+    bool   m_peekBotVisible = false;
+    double m_peekReactStart = 0.0; // 0 = reaction window not started yet
+    bool   m_peekWasMoving = false; // true once the swing actually got moving
+
+    // Reactive Track (T-05) state
+    double m_reactiveNextTurn = 0.0; // next random direction-change time
 
     // Tracking state
     double m_trackingOnTargetTime = 0.0;

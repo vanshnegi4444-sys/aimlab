@@ -2,6 +2,7 @@
 #include "map_mesh.h"
 #include "gl_loader.h"
 #include <cstdio>
+#include <cstring>
 #include <algorithm>
 #include <cmath>
 
@@ -55,6 +56,42 @@ bool MapMesh::load(const std::string& binPath) {
 
     if (std::memcmp(hdr.magic, "VMAP", 4) != 0 && std::memcmp(hdr.magic, "VBOT", 4) != 0) {
         std::printf("[map_mesh] Invalid magic in: %s\n", binPath.c_str());
+        std::fclose(f);
+        return false;
+    }
+
+    if (hdr.version != 1) {
+        std::printf("[map_mesh] Unsupported version %u in: %s (expected 1)\n",
+                    hdr.version, binPath.c_str());
+        std::fclose(f);
+        return false;
+    }
+
+    // Sanity caps BEFORE allocating: a corrupt header must never be able
+    // to ask for a multi-GB vertex/index buffer (std::bad_alloc crash).
+    // Biggest real asset is havenA (~440k verts / ~360k tris), so 2M/2M
+    // leaves 4x headroom while still catching garbage.
+    constexpr uint32_t kMaxVerts = 2000000;
+    constexpr uint32_t kMaxTris  = 2000000;
+    if (hdr.numVerts == 0 || hdr.numVerts > kMaxVerts ||
+        hdr.numTris == 0 || hdr.numTris > kMaxTris) {
+        std::printf("[map_mesh] Implausible counts in: %s (%u verts, %u tris)\n",
+                    binPath.c_str(), hdr.numVerts, hdr.numTris);
+        std::fclose(f);
+        return false;
+    }
+
+    // The file must actually contain the bytes the header promises.
+    std::fseek(f, 0, SEEK_END);
+    long fileSize = std::ftell(f);
+    std::fseek(f, sizeof(hdr), SEEK_SET);
+    const uint64_t need =
+        static_cast<uint64_t>(hdr.numVerts) * sizeof(VMapVertex) +
+        static_cast<uint64_t>(hdr.numTris) * 3u * sizeof(uint32_t);
+    if (fileSize < 0 || static_cast<uint64_t>(fileSize) < sizeof(hdr) + need) {
+        std::printf("[map_mesh] Truncated file: %s (%ld bytes, need %llu)\n",
+                    binPath.c_str(), fileSize,
+                    static_cast<unsigned long long>(sizeof(hdr) + need));
         std::fclose(f);
         return false;
     }

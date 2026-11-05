@@ -8,6 +8,7 @@ enum class MapCourseId {
     AscentB_Clear,    // B Main to B Site Attack & Angle Slicing
     BindB_LongClear,  // B Long / Garden to B Site & Hookah
     HavenA_Clear,     // A Long to Heaven & Site Clear
+    HavenB_Clear,     // B Corridor to B Site Entry & Clear
     Count
 };
 
@@ -66,7 +67,9 @@ public:
 
     // Real-time HUD telemetry for active angle
     bool  hasActiveTarget() const { return m_activeBotIdx >= 0 && m_activeBotIdx < static_cast<int>(m_bots.size()); }
-    float activeBotReactionProgress() const;
+    // NOTE: takes `now` because the progress is (now - firstSeenTime) /
+    // reactionLimit. The old no-arg version returned a constant 1.0.
+    float activeBotReactionProgress(double now) const;
     float activeBotVertAngleError() const { return m_currentVertErr; }
     const std::string& activeBotName() const;
 
@@ -74,6 +77,7 @@ private:
     void initAscentB();
     void initBindB();
     void initHavenA();
+    void initHavenB();
 
     MapCourseId m_courseId = MapCourseId::AscentB_Clear;
     Vec3        m_spawnPos{};

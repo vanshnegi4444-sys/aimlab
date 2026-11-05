@@ -109,6 +109,16 @@ ValoAim loads real 3D Valorant map geometry directly from extracted game assets 
   4. *A Hell Under-Window Hold* — Ground level contrast against Heaven.
   5. *A Short / Sewers Flank* — Flank angle check.
 
+### 4. Haven B: Corridor to Site Entry & Clear (`assets/maps/havenB.bin`)
+- **Player Spawn:** B corridor, south end, looking up the ramp toward B Site.
+- **Corner Clearing Progression:**
+  1. *Ramp Top Duel* — Opening duel at the top of the entry ramp.
+  2. *Site Left Corner* — Close corner check on site entry.
+  3. *Site Default Box* — Standard plant box hold.
+  4. *Back Site Corner* — Deep corner check at the back of site.
+  5. *Site Right Flank* — Flank angle check on the site's right side.
+- **Note:** bot positions were measured from the map file itself (Blender floor scan: corridor floor ~1.0 m, site floor ~3.0 m). Bot facing angles are approximate — check them visually on the first run.
+
 ---
 
 ## Crosshair Level Guidance System (How It Fixes Your Aim)
@@ -136,10 +146,10 @@ In your Tracker.gg profile (`V9pujari#0000` - Plat 2):
 ---
 
 **What's in the app:**
-- **3D Map Workshops:** Real Ascent B, Bind B, and Haven A geometry with Jett humanoid bots and full WASD navigation.
+- **3D Map Workshops:** Real Ascent B, Bind B, Haven A and Haven B geometry with Jett humanoid bots and full WASD navigation.
 - **Crosshair Level Guidance:** Real-time head height indicators and post-run vertical error diagnostics.
-- **V9pujari Daily Routine:** 6 structured blocks (16 sets total, ~25 mins) tailored directly from your tracker.gg profile.
-- **14 Scenarios in Total:** 3 3D Map Workshops + 11 Precision & Tracking Drills.
+- **V9pujari Daily Routine:** 6 structured blocks (18 sets total, ~16 mins of drills) tailored directly from your tracker.gg profile.
+- **19 Scenarios in Total:** 4 3D Map Workshops + 15 Precision, Tracking, Movement & Reaction Drills.
 - **Deep Analytics:** Overshoot vs. Undershoot %, Counter-strafe stop accuracy %, TTK (ms), and coach advice.
 - **Low-Latency Audio:** Procedural hit clicks and crisp metallic headshot dinks.
 - **Valorant Sens Engine:** Exact 0.07 deg/count rotation, eDPI, and cm/360 calculation.
@@ -293,6 +303,8 @@ To add:
 
 ## B3. Scenario catalogue (exact parameters)
 
+**Implementation status (2026-11-05):** implemented in code — C-01, C-02, C-03, C-04, C-05, C-06, C-07, P-02, T-01, T-02, T-05, R-02, R-03, M-01, MAP-01, MAP-02, MAP-03 (Haven A), MAP-04 (Haven B). The code's P-03 is a custom drill ("Off-Angle Strafe Confirm", built from a Range screenshot) and is **not** the Comfort-zone Shrink in the table below. The code's R-01 is the Angle Hold drill (the spec's R-02); a pure Reaction Test (spec R-01) is not implemented yet. Still pending: C-08, P-01, T-03, T-04, S-01/02/03, R-01, R-04, M-02, M-03, MAP-05 (Pre-aim Ghost), benchmarks/ranks.
+
 Units: distances in **metres**, angles in **degrees from crosshair**, speeds
 in **m/s**, radius = sphere radius. A Valorant head is ~0.12 m radius (the
 Sheepu default sphere is also 0.12 m). At 10 m that's ~0.69° radius.
@@ -310,7 +322,7 @@ Trains: speed + accuracy of one-shot target acquisition.
 | C-02 | **Gridshot Long** | 3 live | 0.12 | 25 | 3×3, 2.5 m | Same, smaller angular size. |
 | C-03 | **Sixshot** | 6 live | 0.15 | 10 | random in ±20°×±10° | Respawn random, min 4° from others. |
 | C-04 | **Spidershot** | 1 | 0.20 | 10 | alternates center ↔ random ±35°×±15° | Trains flick-out *and* return-to-center. |
-| C-05 | **Wide Flick 180** | 1 | 0.20 | 10 | random 45°–160° yaw, either side | Big arm flicks. 30 s. |
+| C-05 | **Wide Flick 180** *(implemented)* | 1 | 0.20 | 10 | random 45°–160° yaw, either side | Big arm flicks. 30 s. |
 | C-06 | **Headshot Line** | 1 | 0.12 | 8–30 random | yaw ±40°, **pitch fixed at head height (1.6 m)** | Teaches crosshair placement at head level. |
 | C-07 | **Microshot** | 1 | 0.06 | 10 | within 3° of previous target | Tiny corrections, punishes overshoot. |
 | C-08 | **Timed Flick** | 1 | 0.15 | 10 | ±30° | Target **expires after 600 ms** (adaptive). Miss/expire = −points. |
@@ -333,7 +345,7 @@ Trains: smooth mouse control. **Targets are invincible. Score = time on target.*
 | T-02 | **Valorant Strafe** | Humanoid head hitbox doing **A-D strafes at Valorant run speed (6.75 m/s)**, random 0.2–0.8 s direction changes, instant-ish (0.05 s) turnarounds. |
 | T-03 | **Air Track** | Sphere jumping on a parabola (gravity 9.81) + lateral drift. |
 | T-04 | **Close Swing** | Bot at 4 m wide-swinging past you at 6.75 m/s. Large angular velocity → wrist + arm. |
-| T-05 | **Reactive Track** | Random direction changes every 0.15–0.5 s (Perlin noise path). Measures **reaction to direction change** in ms. |
+| T-05 | **Reactive Track** *(implemented — uniform random re-aim, not Perlin)* | Random direction changes every 0.15–0.5 s (Perlin noise path). Measures **reaction to direction change** in ms. |
 
 ### Category 4 — Target switching
 
@@ -349,7 +361,7 @@ Trains: smooth mouse control. **Targets are invincible. Score = time on target.*
 |---|---|---|
 | R-01 | **Reaction Test** | Screen-center target appears after random 1–4 s delay. Click ASAP. False starts = penalty. Pure reaction (no aim). |
 | R-02 | **Angle Hold** | You hold a doorway. A bot peeks out after a random 1–6 s at random speed (wide/jiggle/shoulder), visible for 250–600 ms. Kill before it hides or it "shoots" you. |
-| R-03 | **Peeker's Advantage** | *You* peek with A/D. The bot is pre-placed with 200 ms reaction. Stop (counter-strafe), shoot, re-hide. |
+| R-03 | **Peeker's Advantage** *(implemented — 200 ms window starts when you stop moving)* | *You* peek with A/D. The bot is pre-placed with 200 ms reaction. Stop (counter-strafe), shoot, re-hide. |
 | R-04 | **Anti-flash** | A white flash (full-screen fade) hits from a direction. Turn away within 250 ms to avoid a blind (screen whiteout scaled by how long you faced it). Then turn back and kill. |
 
 ### Category 6 — Movement (counter-strafe)
@@ -370,10 +382,11 @@ Uses the `.blend` maps in `Maps/` exported to glTF (see B9).
 
 | ID | Name | Description |
 |---|---|---|
-| MAP-01 | **Ascent B – Pre-aim entry** | Walk the B main route. 12–16 bots at random common angles. Teaches **crosshair placement** on every corner. |
-| MAP-02 | **Bind B – Hold** | Hold B site. Bots push from long/garden with random timings, some behind smoke. |
-| MAP-03 | **Haven A / B – Clear** | Clear site corners in order. Timer + stars. |
-| MAP-04 | **Pre-aim Ghost** | Same as above, but a transparent "ideal crosshair line" is drawn along the route. Toggle it off once learned. |
+| MAP-01 | **Ascent B – Pre-aim entry** | Walk the B main route. 7 bots at fixed common angles. Teaches **crosshair placement** on every corner. |
+| MAP-02 | **Bind B – Hold** | Hold B site. 6 bots at fixed common angles (Garden, Hookah window, Sand, Center, Elbow, Hell). |
+| MAP-03 | **Haven A – Clear** | Clear A site corners in order. 5 bots (A Long, Default Stack, Heaven window, Hell, Short flank). |
+| MAP-04 | **Haven B – Clear** | Clear B site corners in order. 5 bots (Ramp Top, Left Corner, Default Box, Back Site, Right Flank). Bot positions measured from the map file. |
+| MAP-05 | **Pre-aim Ghost** *(pending)* | Same as above, but a transparent "ideal crosshair line" is drawn along the route. Toggle it off once learned. |
 
 **Stars (moment mode):** ★ cleared; ★★ cleared under par time; ★★★ under par,
 zero damage taken, all kills yours.
@@ -923,22 +936,119 @@ engine, combined progress chart.
 
 ---
 
-## Project layout (v1, current)
+## Project layout (current)
+
+The app grew well past the original gridshot-only v1. The layout below is
+what the code actually looks like now (26 source files).
 
 ```
-CMakeLists.txt        FetchContent: GLFW 3.4, Dear ImGui (sources added manually)
+CMakeLists.txt        FetchContent: GLFW 3.4, Dear ImGui v1.93.0 (sources added manually)
 src/main.cpp          init, WndProc subclass, main loop, MENU/PLAY/RESULTS machine
 src/input.h/.cpp      RawMouse — Win32 Raw Input, isolated here
 src/camera.h          yaw/pitch, sens math, hand-rolled view/projection (no glm)
-src/trainer.h/.cpp    gridshot rules, ray-vs-disc hitscan, timer, stats (portable)
-src/renderer.h/.cpp   wall + billboard target shaders (portable OpenGL)
+src/trainer.h/.cpp    all range drills: ray-vs-disc hitscan, timer, stats (portable)
+src/preaim_course.h/.cpp   3D map workshops: bot placement, reaction timers, HUD telemetry
+src/map_mesh.h/.cpp   .bin map/bot loader (VMAP/VBOT), floor-height queries, collision
+src/player.h/.cpp     WASD movement, gravity, floor snapping, crouch/walk speeds
+src/renderer.h/.cpp   wall + billboard targets + map/bot rendering (portable OpenGL)
+src/routine.h/.cpp    V9pujari daily routine: 6 blocks, 18 sets
+src/scenarios.h/.cpp  scenario registry: id, name, category, defaults (see below)
 src/ui.h/.cpp         ImGui: settings menu, HUD, crosshair, results
 src/settings.h        one shared Settings struct
+src/audio.h/.cpp      Win32 waveOut hit sounds (procedural, no audio files)
 src/gl_loader.h/.cpp  minimal GL 3.3 loader (Windows opengl32 is only GL 1.1)
+assets/maps/*.bin     exported map geometry (ascentB, bindB, havenA, havenB)
+assets/models/bot_jett.bin   exported Jett model (14,659 verts)
 best.txt              created at runtime next to the exe; stores best score
-Agents/ Maps/ Weapons/  Blender source assets (see B9) — not used by v1
+Agents/ Maps/ Weapons/  Blender source assets (see B9) — not committed to git
 ```
 
-**Code rules followed:** Win32 code lives only in `input.cpp` and `main.cpp`.
-The game logic (`trainer`) and math (`camera`) are portable and commented with
-the *why*, not just the *what*. v2 moves `trainer` into `src/scenario/` (B8).
+### How scenarios are registered (the part most people get wrong)
+
+Scenarios are **hardcoded, not JSON-driven** (the B7 JSON loader is still
+pending). To add one you touch four places:
+
+1. `src/scenarios.h` — append a new `ScenarioId` **before `Count`**. Existing
+   ids must never move: `best.txt` keys scores off the id number.
+2. `src/scenarios.cpp` — append a matching `ScenarioInfo` to `kScenarios`
+   in the **same order** as the enum (`getScenarioInfo` indexes by id).
+   Menus iterate `getAllScenarios()`, so a new entry shows up automatically.
+3. `src/trainer.h/.cpp` — add an `initXxx()` function, a case in `start()`,
+   and, if it respawns or moves, cases in `spawnRandomTarget()` / `update()`.
+4. `src/routine.cpp` — only if the drill belongs in the daily routine.
+
+Map workshops are different: the course (bots, spawn, yaw) lives in
+`src/preaim_course.cpp` (`initAscentB` / `initBindB` / `initHavenA` /
+`initHavenB`), the dispatch in `main.cpp` `enterPlay()`, and the geometry in
+`assets/maps/*.bin`.
+
+### The .bin format (what the maps actually are)
+
+The B9 glTF/cgltf pipeline was never built. Maps and bots use a custom
+binary format written by a Blender export script (see `map_mesh.h`):
+
+- Header (40 bytes): magic `"VMAP"` or `"VBOT"`, version (1), numVerts,
+  numTris, min/max X/Y/Z bounds (floats).
+- Vertices (32 bytes each): position xyz, normal xyz, color rgba, flag
+  (1 = floor, 2 = head), padding.
+- Triangles: 3 × uint32 indices each.
+- Coordinate mapping: `game = (blend_x, blend_z, -blend_y)` (Blender Z-up
+  to game Y-up). Bot positions in `preaim_course.cpp` use game coords.
+
+The loader (`map_mesh.cpp`) checks the magic, the version, and caps
+numVerts/numTris at 2M each plus a file-size check before allocating, so a
+corrupt header cannot crash the game with a huge allocation.
+
+### Code rules (and where they are broken)
+
+- **Intended:** Win32 code lives only in `input.cpp` and `main.cpp`. The
+  game logic (`trainer`, `preaim_course`) and math (`camera`) are portable.
+- **Broken right now:** `audio.cpp` and `gl_loader.h` are not `#ifdef _WIN32`
+  guarded (unlike `input.cpp`), and `map_mesh.h` was missing
+  `#include <cstdint>` (compiles on MSVC only via transitive includes).
+  Both are small fixes, not done yet.
+
+### Known gaps (honest list, 2026-11-05)
+
+- **Haven A bot heights are suspect.** The code puts ground bots at y = 0–1,
+  but the map file's A-site floor sits several metres higher in Blender
+  coords. If the .bin matches the .blend (expected), those bots are buried
+  under the floor: invisible, but still shootable through it. Verify from
+  `havenA.bin` before trusting the Haven A workshop. Same check pending for
+  the Ascent spawn point and the Bind Garden/Hookah bots.
+- **Scoring does not match the B4 formulas yet** (no accuracy² multiplier,
+  speed bonus is a 40/20 step instead of the formula, tracking score is
+  `onTargetTime × 250` instead of the B4 expression).
+- **Overshoot/undershoot metric is wrong:** it measures the world-X offset
+  of target[0] only, with no flick direction, so a leftward flick
+  overshooting left counts as "undershoot".
+- **`avgReactionMs()` always returns 210.0** (the counters are never
+  accumulated). Either wire it up or delete the metric.
+- **Movement speed is inconsistent:** `player.h` run speed is 5.4 m/s but
+  the trainer sim uses 6.75 m/s; the 1.85 m/s deadzone is 27.5 % of one
+  and 34 % of the other.
+- **Range wall is a 2×2 m quad** with no scale; Gridshot Long targets sit
+  at 25 m while the wall renders at `wallDist` (10 m).
+- **Scenario parameters differ from B3 in places** (Sixshot ±22° not ±20°,
+  Spidershot radius 0.15 not 0.20, Headshot Line 9–16 m not 8–30 m,
+  First-Shot Placement 2.9–8° not 1–4°, Angle Hold peek 380 ms fixed not
+  250–600 ms). Either update B3 or retune the code — pick one source of
+  truth per scenario.
+
+### Fixes applied in this round (2026-11-05)
+
+1. **Spawn yaws fixed** — all three map courses spawned the player facing
+   away from every bot (Ascent −135° → −28°, Bind 180° → −37°,
+   Haven A 180° → +11°, computed from spawn/bot positions).
+2. **Stray crosshair line deleted** (`ui.cpp` drew a fifth line ~280 px left
+   of centre in every range drill).
+3. **Map loader hardened** — version check, 2M vert/tri caps, file-size
+   check before allocating; missing `#include <cstdint>` / `<cstring>` added.
+4. **Bot reaction timer fixed** — the HUD progress now uses real elapsed
+   time (`(now − firstSeenTime) / reactionLimit`, was a constant 1.0), and
+   the timer resets when you look away instead of freezing and instant-
+   firing on re-look.
+5. **New scenarios** — C-05 Wide Flick 180, T-05 Reactive Track,
+   R-03 Peeker's Advantage (also added to routine Block 5: Angle Hold ×2
+   + Peeker's Advantage ×2), MAP-04 Haven B course (5 bots, positions
+   measured from `havenB.blend` via Blender floor scan).

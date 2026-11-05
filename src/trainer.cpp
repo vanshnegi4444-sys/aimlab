@@ -105,6 +105,15 @@ void Trainer::start(const Settings& s, double now, ScenarioId scenarioId) {
         case ScenarioId::OffAngleStrafeConfirm:
             initOffAngleStrafeConfirm(now);
             break;
+        case ScenarioId::WideFlick180:
+            initWideFlick180(now);
+            break;
+        case ScenarioId::ReactiveTrack:
+            initReactiveTrack(now);
+            break;
+        case ScenarioId::PeekersAdvantage:
+            initPeekersAdvantage(now);
+            break;
         default:
             initGridshot(now);
             break;
@@ -277,6 +286,56 @@ void Trainer::initOffAngleStrafeConfirm(double now) {
     t.alive = true;
 }
 
+void Trainer::initWideFlick180(double now) {
+    m_activeTargetCount = 1;
+    // One target at a wide angle: 45-160 deg to either side, 10 m out.
+    // Big arm flicks and fast turns (spec C-05).
+    std::uniform_real_distribution<float> sideDist(-1.0f, 1.0f);
+    std::uniform_real_distribution<float> angDist(45.0f, 160.0f);
+    float side = sideDist(m_rng) >= 0.0f ? 1.0f : -1.0f;
+    float yRad = radians(side * angDist(m_rng));
+
+    Target& t = m_targets[0];
+    t.center = { m_wallDist * std::sin(yRad), 0.0f, -m_wallDist * std::cos(yRad) };
+    t.radius = 0.20f;
+    t.spawnTime = now;
+    t.alive = true;
+}
+
+void Trainer::initReactiveTrack(double now) {
+    m_activeTargetCount = 1;
+    Target& t = m_targets[0];
+    t.center = { 0.0f, 0.0f, -m_wallDist };
+    t.velocity = { 4.0f, 0.0f, 0.0f };
+    t.minX = -3.0f;
+    t.maxX =  3.0f;
+    t.minY = -1.5f;
+    t.maxY =  1.5f;
+    t.radius = m_radius;
+    t.spawnTime = now;
+    t.alive = true;
+    m_reactiveNextTurn = now + 0.3;
+}
+
+void Trainer::initPeekersAdvantage(double now) {
+    m_activeTargetCount = 1;
+    m_playerPosX = 0.0f;
+    m_playerVelX = 0.0f;
+    m_peekBotVisible = false;
+    m_peekReactStart = 0.0;
+    m_peekWasMoving = false;
+    m_peekSide = 1;
+
+    // Bot starts hidden behind cover. It appears when you swing out with
+    // A (left) or D (right), and fires back 200 ms after you stop moving.
+    Target& t = m_targets[0];
+    t.center = { 0.0f, 0.0f, -m_wallDist };
+    t.radius = 0.14f;
+    t.spawnTime = now;
+    t.alive = false;
+    t.isPeeking = false;
+}
+
 void Trainer::spawnRandomTarget(int idx, double now) {
     Target& t = m_targets[idx];
     switch (m_scenarioId) {
@@ -383,6 +442,26 @@ void Trainer::spawnRandomTarget(int idx, double now) {
             t.radius = 0.12f;
             t.spawnTime = now;
             t.alive = true;
+            break;
+        }
+        case ScenarioId::WideFlick180: {
+            std::uniform_real_distribution<float> sideDist(-1.0f, 1.0f);
+            std::uniform_real_distribution<float> angDist(45.0f, 160.0f);
+            float side = sideDist(m_rng) >= 0.0f ? 1.0f : -1.0f;
+            float yRad = radians(side * angDist(m_rng));
+            t.center = { m_wallDist * std::sin(yRad), 0.0f, -m_wallDist * std::cos(yRad) };
+            t.radius = 0.20f;
+            t.spawnTime = now;
+            t.alive = true;
+            break;
+        }
+        case ScenarioId::PeekersAdvantage: {
+            // Rep done: hide the bot until the next peek.
+            t.alive = false;
+            t.isPeeking = false;
+            m_peekBotVisible = false;
+            m_peekReactStart = 0.0;
+            m_peekWasMoving = false;
             break;
         }
         default:
@@ -493,6 +572,84 @@ void Trainer::update(double now, double dt, const Camera& cam, bool movingLeft, 
             t.center.x = t.minX;
             t.velocity.x = std::abs(t.velocity.x);
         }
+    } else if (m_scenarioId == ScenarioId::ReactiveTrack) {
+        Target& t = m_targets[0];
+        // Random direction change every 0.15-0.5 s. Spec calls for a
+        // Perlin-noise path; uniform random re-aim is the v1 version.
+        if (now >= m_reactiveNextTurn) {
+            std::uniform_real_distribution<float> angDist(0.0f, 6.283f);
+            std::uniform_real_distribution<float> intDist(0.15f, 0.5f);
+            float a = angDist(m_rng);
+            float sp = 4.0f;
+            t.velocity = { sp * std::cos(a), sp * std::sin(a), 0.0f };
+            m_reactiveNextTurn = now + static_cast<double>(intDist(m_rng));
+        }
+        t.center.x += t.velocity.x * static_cast<float>(dt);
+        t.center.y += t.velocity.y * static_cast<float>(dt);
+        if (t.center.x > t.maxX) {
+            t.center.x = t.maxX;
+            t.velocity.x = -std::abs(t.velocity.x);
+        } else if (t.center.x < t.minX) {
+            t.center.x = t.minX;
+            t.velocity.x = std::abs(t.velocity.x);
+        }
+        if (t.center.y > t.maxY) {
+            t.center.y = t.maxY;
+            t.velocity.y = -std::abs(t.velocity.y);
+        } else if (t.center.y < t.minY) {
+            t.center.y = t.minY;
+            t.velocity.y = std::abs(t.velocity.y);
+        }
+    } else if (m_scenarioId == ScenarioId::PeekersAdvantage) {
+        Target& t = m_targets[0];
+        if (!m_peekBotVisible) {
+            // Commit to a peek: the bot appears at the angle on the side
+            // you swung toward. (The swing itself is your A/D movement;
+            // the movement sim above drives m_playerVelX.)
+            if (movingLeft || movingRight) {
+                m_peekSide = movingRight ? 1 : -1;
+                float yawDeg = 25.0f * static_cast<float>(m_peekSide);
+                float yRad = radians(yawDeg);
+                float d = 12.0f;
+                t.center = { d * std::sin(yRad), 0.0f, -d * std::cos(yRad) };
+                t.alive = true;
+                t.isPeeking = true;
+                t.peekTime = now;
+                t.peekDuration = 0.20; // bot fires 200 ms after you stop
+                m_peekBotVisible = true;
+                m_peekReactStart = 0.0;
+                m_peekWasMoving = false;
+            }
+        } else {
+            // Bot is out. Its 200 ms reaction window starts once you have
+            // stopped moving (counter-strafed to a stop) AFTER the swing.
+            // (m_peekWasMoving guards against the window starting during
+            // the first frames of the swing, when speed is still < 1.85.)
+            if (!isPlayerStopped()) {
+                m_peekWasMoving = true;
+            } else if (m_peekWasMoving) {
+                if (m_peekReactStart <= 0.0) m_peekReactStart = now;
+                if (now - m_peekReactStart > t.peekDuration) {
+                    // Too slow: the bot shoots first, rep resets.
+                    t.alive = false;
+                    t.isPeeking = false;
+                    m_peekBotVisible = false;
+                    m_peekReactStart = 0.0;
+                    m_peekWasMoving = false;
+                    m_streak = 0;
+                }
+            }
+            // Swing back with the opposite key to hide (re-hide).
+            bool swingingBack =
+                (m_peekSide > 0 && movingLeft) || (m_peekSide < 0 && movingRight);
+            if (swingingBack) {
+                t.alive = false;
+                t.isPeeking = false;
+                m_peekBotVisible = false;
+                m_peekReactStart = 0.0;
+                m_peekWasMoving = false;
+            }
+        }
     }
 
     // 3. Tracking evaluation
@@ -536,7 +693,8 @@ int Trainer::shoot(double now, const Camera& cam) {
     Vec3 dir = cam.forward();
 
     // If moving in movement drills, add heavy shot spread!
-    if ((m_scenarioId == ScenarioId::CounterStrafeDrill || m_scenarioId == ScenarioId::OffAngleStrafeConfirm) && !stopped) {
+    // (Peeker's Advantage counts too: you must stop after the swing.)
+    if ((m_scenarioId == ScenarioId::CounterStrafeDrill || m_scenarioId == ScenarioId::OffAngleStrafeConfirm || m_scenarioId == ScenarioId::PeekersAdvantage) && !stopped) {
         std::uniform_real_distribution<float> spreadDist(-0.065f, 0.065f);
         dir.x += spreadDist(m_rng);
         dir.y += spreadDist(m_rng);

@@ -147,6 +147,42 @@ static const std::vector<ScenarioInfo> kScenarios = {
         "Target spawns 2-3 body widths off your crosshair (exact distance from your Range screenshot) and performs rapid AD micro-strafes. Teaches you to wait for the strafe apex or use A/D movement-aim rather than panic-flicking.",
         "Fixes your exact miss: eliminates shooting where the enemy WAS instead of confirming where they STOP.",
         45.0f, 0.12f, 12.0f, 1, false, true
+    },
+    ScenarioInfo{
+        ScenarioId::WideFlick180,
+        "C-05",
+        "Wide Flick 180",
+        ScenarioCategory::Clicking,
+        "Single target at a wide angle (45-160 deg to either side, 10 m). Trains big arm flicks and fast 180-degree turns.",
+        "Builds the large flicks you need when an enemy appears far off your crosshair.",
+        30.0f, 0.20f, 10.0f, 1, false, false
+    },
+    ScenarioInfo{
+        ScenarioId::ReactiveTrack,
+        "T-05",
+        "Reactive Track",
+        ScenarioCategory::Tracking,
+        "Target changes direction randomly every 0.15-0.5 s. Score is time on target. Trains reacting to sudden direction changes instead of predicting a smooth path.",
+        "Kills tracking lag: watch the target's center, not your crosshair.",
+        45.0f, 0.13f, 10.0f, 1, true, false
+    },
+    ScenarioInfo{
+        ScenarioId::PeekersAdvantage,
+        "R-03",
+        "Peeker's Advantage",
+        ScenarioCategory::Reaction,
+        "Swing out with A (left) or D (right). The bot appears at the angle and fires back 200 ms after you stop moving. Stop (counter-strafe), shoot, then swing back with the opposite key to hide. If you are too slow, the bot shoots first and the rep resets.",
+        "Trains the exact duel timing you lose in ranked: swing, stop, first bullet before the enemy reacts.",
+        45.0f, 0.14f, 12.0f, 1, false, true
+    },
+    ScenarioInfo{
+        ScenarioId::HavenB_PreAim,
+        "MAP-04",
+        "Haven B: Corridor to Site Entry & Clear",
+        ScenarioCategory::MapPreAim,
+        "Push the B corridor up the ramp onto Haven B Site. Clear the ramp-top duel, site corners, the default box and the back site. Real 3D geometry & Jett humanoid bots.",
+        "Pre-aim practice for B site: same crosshair-height discipline as Haven A, on your second-worst map.",
+        60.0f, 0.14f, 15.0f, 5, false, true
     }
 };
 

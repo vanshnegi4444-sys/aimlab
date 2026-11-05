@@ -325,7 +325,6 @@ void ui::drawCrosshair(const Settings& s, const Trainer& t, float screenW, float
 
     dl->AddLine(ImVec2(c.x - gap - len, c.y), ImVec2(c.x - gap, c.y), col, th);
     dl->AddLine(ImVec2(c.x + gap, c.y), ImVec2(c.x + gap + len, c.y), col, th);
-    dl->AddLine(ImVec2(c.y - gap - len, c.y), ImVec2(c.y - gap, c.y), col, th);
     dl->AddLine(ImVec2(c.x, c.y - gap - len), ImVec2(c.x, c.y - gap), col, th);
     dl->AddLine(ImVec2(c.x, c.y + gap), ImVec2(c.x, c.y + gap + len), col, th);
 
