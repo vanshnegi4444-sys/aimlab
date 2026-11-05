@@ -1,0 +1,30 @@
+# Build artifacts
+build/
+bin/
+obj/
+*.exe
+*.dll
+*.obj
+*.pdb
+*.ilk
+*.lib
+*.exp
+*.log
+
+# IDE & Editor caches
+.vs/
+.vscode/
+.idea/
+imgui.ini
+best.txt
+
+# Intermediate scripts / temporary scratch
+scratch/
+__pycache__/
+*.pyc
+
+# Raw source 3D authoring files (1.8+ GB total, exceed GitHub limits)
+# Note: Ready-to-use exported binary maps and models are tracked in assets/
+Maps/*.blend
+Agents/**/*.blend
+Weapons/**/*.blend
