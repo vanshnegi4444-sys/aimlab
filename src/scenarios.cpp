@@ -210,6 +210,60 @@ static const std::vector<ScenarioInfo> kScenarios = {
         "A vertical-flick drill on Haven A, not a tactical clear: four bots, one per verified level — Sewers 1.9 m, A Long 4.2 m, site 7.7 m, Heaven 10.4 m — ordered low to high so each rep is a bigger upward flick.",
         "Trains pure vertical crosshair placement across an 8.4 m height range on real map geometry.",
         60.0f, 0.14f, 15.0f, 4, false, true
+    },
+    ScenarioInfo{
+        ScenarioId::AscentB_Defuse,
+        "MAP-09",
+        "Ascent B: Post-Plant Defuse (Retake from CT, 45 s)",
+        ScenarioCategory::MapPreAim,
+        "The spike is planted at Default. Retake from the CT corridor against four post-plant holders (Default, Market Edge, Lane, Boathouse) before the 45 s spike timer runs out. Holders face CT and react in 0.38-0.45 s.",
+        "Retake pre-aim under a real spike timer: clear in order, do not waste time on the flank.",
+        45.0f, 0.14f, 15.0f, 4, false, true
+    },
+    ScenarioInfo{
+        ScenarioId::BindB_Defuse,
+        "MAP-10",
+        "Bind B: Post-Plant Defuse (Retake from Hall, 45 s)",
+        ScenarioCategory::MapPreAim,
+        "The spike is planted on B site. Retake from B Hall against five post-plant holders (Sand, Center Box, Elbow, Garden, Hookah) before the 45 s spike timer runs out. All bots face Hall.",
+        "Retake pre-aim under a real spike timer on Bind's tight site.",
+        45.0f, 0.14f, 15.0f, 5, false, true
+    },
+    ScenarioInfo{
+        ScenarioId::HavenA_Defuse,
+        "MAP-11",
+        "Haven A: Post-Plant Defuse (Retake from Heaven, 45 s)",
+        ScenarioCategory::MapPreAim,
+        "The spike is planted at Default. Retake from Heaven — the classic A retake perch — against four post-plant holders (Default, Hell, Long, Short) before the 45 s spike timer runs out. You shoot down from 10.35 m at heads from 1.91 m to 7.73 m.",
+        "Retake pre-aim from height: a vertical-flick drill inside a timed retake.",
+        45.0f, 0.14f, 15.0f, 4, false, true
+    },
+    ScenarioInfo{
+        ScenarioId::AscentB_Clutch1v5,
+        "MAP-12",
+        "Ascent B: 1v5 Clutch (3 hits = round lost)",
+        ScenarioCategory::MapPreAim,
+        "Last alive on Ascent B: enter from B Main against five bots on the site's real anchor spots. Reactions are staggered by angle distance (0.55-1.25 s) and a bot only fires while it is in your sight cone, so isolate 1v1s and never face two angles at once. 3 hits = round lost. No timer.",
+        "Clutch discipline: angle isolation and patience, not flick speed.",
+        60.0f, 0.14f, 15.0f, 5, false, true
+    },
+    ScenarioInfo{
+        ScenarioId::BindB_HeadHeight,
+        "MAP-13",
+        "Bind B: Head-Height Lane (Headshots Only)",
+        ScenarioCategory::MapPreAim,
+        "Crosshair-placement drill down B Long: the same six anchor spots as MAP-02, but body shots do not kill — only headshots end the round. Head height drops ~2.3 m as the lane falls from Garden (5.33 m) to the site (3.0 m). Wasted body shots are counted on the results screen.",
+        "Head-level discipline across changing ground height: the score is headshot rate + vertical error.",
+        60.0f, 0.14f, 15.0f, 6, false, true
+    },
+    ScenarioInfo{
+        ScenarioId::AscentB_AnchorHold,
+        "MAP-14",
+        "Ascent B: Boathouse Anchor Hold",
+        ScenarioCategory::MapPreAim,
+        "Corner-holding from the defender's side: you ARE the Boathouse anchor and five attackers push in from B Main, peeking in order (reactions staggered 0.50-1.05 s). Hold one angle and tap each peek as it comes. No timer, no damage limit.",
+        "Defensive angle holding: patience and peek timing instead of entry clearing.",
+        60.0f, 0.14f, 15.0f, 5, false, true
     }
 };
 

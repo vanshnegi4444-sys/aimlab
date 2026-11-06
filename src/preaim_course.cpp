@@ -15,6 +15,12 @@ std::string PreAimCourse::courseName() const {
         case MapCourseId::HavenC_Clear:    return "Haven C: Long to Site Clear";
         case MapCourseId::HavenC_Retake:   return "Haven C: Site Retake";
         case MapCourseId::HavenA_ElevLadder: return "Haven A: Elevation Ladder (Vertical Flick Drill)";
+        case MapCourseId::AscentB_Defuse:  return "Ascent B: Post-Plant Defuse (Retake from CT, 45 s)";
+        case MapCourseId::BindB_Defuse:    return "Bind B: Post-Plant Defuse (Retake from Hall, 45 s)";
+        case MapCourseId::HavenA_Defuse:   return "Haven A: Post-Plant Defuse (Retake from Heaven, 45 s)";
+        case MapCourseId::AscentB_Clutch1v5: return "Ascent B: 1v5 Clutch (3 hits = round lost)";
+        case MapCourseId::BindB_HeadHeight: return "Bind B: Head-Height Lane (Headshots Only)";
+        case MapCourseId::AscentB_AnchorHold: return "Ascent B: Boathouse Anchor Hold";
         default: return "Custom Map Course";
     }
 }
@@ -28,17 +34,31 @@ std::string PreAimCourse::mapBinPath() const {
         case MapCourseId::HavenC_Clear:    return "assets/maps/havenA.bin";
         case MapCourseId::HavenC_Retake:   return "assets/maps/havenA.bin";
         case MapCourseId::HavenA_ElevLadder: return "assets/maps/havenA.bin";
+        case MapCourseId::AscentB_Defuse:  return "assets/maps/ascentB.bin";
+        case MapCourseId::BindB_Defuse:    return "assets/maps/bindB.bin";
+        case MapCourseId::HavenA_Defuse:   return "assets/maps/havenA.bin";
+        case MapCourseId::AscentB_Clutch1v5: return "assets/maps/ascentB.bin";
+        case MapCourseId::BindB_HeadHeight: return "assets/maps/bindB.bin";
+        case MapCourseId::AscentB_AnchorHold: return "assets/maps/ascentB.bin";
         default: return "assets/maps/ascentB.bin";
     }
 }
 
-void PreAimCourse::start(MapCourseId courseId, double /*now*/) {
+void PreAimCourse::start(MapCourseId courseId, double now) {
     m_courseId = courseId;
     m_bots.clear();
     m_history.clear();
     m_activeBotIdx = -1;
     m_currentVertErr = 0.0f;
     m_damageTaken = 0;
+    // Fail-state / drill-rule state resets every run. start() used to
+    // ignore `now`; the spike timer needs it (2026-11-06 tactical round).
+    m_startTime = now;
+    m_timeLimitSec = 0.0;
+    m_maxDamage = 0;
+    m_headshotsOnly = false;
+    m_bodyHitsWasted = 0;
+    m_failReason = FailReason::None;
 
     switch (courseId) {
         case MapCourseId::AscentB_Clear:   initAscentB(); break;
@@ -48,11 +68,27 @@ void PreAimCourse::start(MapCourseId courseId, double /*now*/) {
         case MapCourseId::HavenC_Clear:    initHavenC(); break;
         case MapCourseId::HavenC_Retake:   initHavenCRetake(); break;
         case MapCourseId::HavenA_ElevLadder: initHavenAElevLadder(); break;
+        case MapCourseId::AscentB_Defuse:  initAscentBDefuse(); break;
+        case MapCourseId::BindB_Defuse:    initBindBDefuse(); break;
+        case MapCourseId::HavenA_Defuse:   initHavenADefuse(); break;
+        case MapCourseId::AscentB_Clutch1v5: initAscentBClutch(); break;
+        case MapCourseId::BindB_HeadHeight: initBindBHeadHeight(); break;
+        case MapCourseId::AscentB_AnchorHold: initAscentBAnchorHold(); break;
         default: initAscentB(); break;
     }
 }
 
 void PreAimCourse::initAscentB() {
+    // TACTICAL REDESIGN 2026-11-06 (sensible-tactical round): the old
+    // bots stood at roughly the right spots but FACED AWAY from the
+    // attacker (yaws 30-90 deg face into the site, not the entry) — a
+    // defender holding Lane faces B Main, not CT. Every yaw below is
+    // atan2(dx, -dz) toward the B Main spawn (-23, -50). The old
+    // "Market Door Peeker" at (-23, -66.5) was mid-site, mislabelled:
+    // a floor probe of ascentB.bin shows the real Market-side floor is
+    // the east edge at x = -8 (floor 1.0; x = 0 is a mesh void, so there
+    // is no Market corridor to stand in — the door position is the east
+    // site edge). That bot moves to (-8, -70).
     // FIXED 2026-11-06 (map validation vs ascentB.bin): the old spawn
     // (-20, 1, -50) sits in a mesh hole — no floor triangle at all there,
     // so getFloorHeight fails and the player is stuck. The nearest solid
@@ -64,43 +100,57 @@ void PreAimCourse::initAscentB() {
 
     PreAimBot b;
 
+    // Lane close corner: the first angle an attacker meets, held tight
+    // to the wall. Yaw faces the B Main entry: atan2(1.5, -8.5) ~ 170.
     b.name = "Lane Close Left Corner";
     b.pos = { -24.5f, 1.0f, -58.5f };
-    b.yawDeg = 45.0f;
+    b.yawDeg = 170.0f;
     b.reactionLimit = 0.45;
     m_bots.push_back(b);
 
     // FIXED 2026-11-06: box top is y = 2.945 in the .bin, not 2.2 —
     // the old bot was sunk 0.74 m into the box.
+    // Elevated Green Box: watches Lane and the site from above. Faces
+    // the entry: atan2(2, -12) ~ 170 deg.
     b.name = "Green Box Top (Elevated Head Level)";
     b.pos = { -25.0f, 2.95f, -62.0f }; // Elevated! Tests vertical crosshair placement
-    b.yawDeg = 45.0f;
+    b.yawDeg = 170.0f;
     b.reactionLimit = 0.42;
     m_bots.push_back(b);
 
-    b.name = "Market Door Peeker";
-    b.pos = { -23.0f, 1.0f, -66.5f };
-    b.yawDeg = 90.0f;
+    // MOVED 2026-11-06: (-23, -66.5) was mid-site, not Market. The
+    // Market door is the east site edge; (-8, -70) is the verified floor
+    // there (y = 1.0). Holds the Market door and the east site. Faces
+    // the entry: atan2(15, -20) ~ -143 deg.
+    b.name = "Market Door Edge";
+    b.pos = { -8.0f, 1.0f, -70.0f };
+    b.yawDeg = -143.0f;
     b.reactionLimit = 0.40;
     m_bots.push_back(b);
 
+    // Default / Triple boxes: the safest plant spot, played from
+    // Boathouse. Faces the entry: atan2(9, -16) ~ 150 deg.
     b.name = "B Site Default Box";
     b.pos = { -32.0f, 1.0f, -66.0f };
-    b.yawDeg = 45.0f;
+    b.yawDeg = 150.0f;
     b.reactionLimit = 0.45;
     m_bots.push_back(b);
 
     // FIXED 2026-11-06: the Boathouse waterline is y = -0.83 in the .bin,
     // not 0.0 — the old bot floated 0.83 m above the water.
+    // Boathouse: the back-site anchor — most cover, hardest to clear,
+    // the post-plant spot. Faces the entry: atan2(17, -19) ~ 138 deg.
     b.name = "Boathouse Front Entrance";
     b.pos = { -40.0f, -0.83f, -69.0f };
-    b.yawDeg = 30.0f;
+    b.yawDeg = 138.0f;
     b.reactionLimit = 0.45;
     m_bots.push_back(b);
 
+    // Deep back alley behind Boathouse. Faces the entry:
+    // atan2(29, -21) ~ 126 deg.
     b.name = "Boathouse Stairs / Back Alley";
     b.pos = { -52.0f, 1.5f, -71.0f };
-    b.yawDeg = 60.0f;
+    b.yawDeg = 126.0f;
     b.reactionLimit = 0.45;
     m_bots.push_back(b);
 
@@ -108,6 +158,8 @@ void PreAimCourse::initAscentB() {
     // roof at 16.44 above it). (-6, -88) is the nearest solid site floor
     // (y = 1.003, 15/25 neighbours solid). Yaw faces the spawn (-23, -50):
     // atan2(-17, -38) ~ -156 deg.
+    // CT Arch: the retake lane — the long angle into the site. Already
+    // faced the entry; unchanged.
     b.name = "CT Arch Long Range Peek";
     b.pos = { -6.0f, 1.0f, -88.0f };
     b.yawDeg = -156.0f;
@@ -133,9 +185,15 @@ void PreAimCourse::initBindB() {
     // exact point is 5.334 — a narrow raised strip/curb along x = 102;
     // the flat Garden floor just west of it is 5.0. The bot stands on the
     // strip, matching the floor the game itself returns there.)
+    // TACTICAL REDESIGN 2026-11-06: same six spots (they were already
+    // real: Garden, Hookah, Sand, Center/Tube, Elbow, Hall), but three
+    // bots faced the wrong way — Garden (20 deg) and Hookah (0 deg)
+    // faced into the site, Hell (270 deg) faced due west. Every yaw
+    // below is atan2(dx, -dz) toward the B Long spawn (108, -32):
+    // a defender holding B Long faces the Long, not the site.
     b.name = "Garden Vista Left Angle";
     b.pos = { 102.0f, 5.33f, -40.0f };
-    b.yawDeg = 20.0f;
+    b.yawDeg = 143.0f;
     b.reactionLimit = 0.45;
     m_bots.push_back(b);
 
@@ -144,7 +202,7 @@ void PreAimCourse::initBindB() {
     // floated 1.5 m above it.
     b.name = "Hookah Window Long Hold";
     b.pos = { 89.0f, 5.0f, -36.5f }; // Elevated window
-    b.yawDeg = 0.0f;
+    b.yawDeg = 103.0f;
     b.reactionLimit = 0.42;
     m_bots.push_back(b);
 
@@ -152,7 +210,7 @@ void PreAimCourse::initBindB() {
     // y = 3.0 — the bot's feet were sunk into the site floor).
     b.name = "Site Sand Container Front";
     b.pos = { 115.0f, 3.08f, -48.0f };
-    b.yawDeg = 160.0f;
+    b.yawDeg = -156.0f;
     b.reactionLimit = 0.45;
     m_bots.push_back(b);
 
@@ -161,19 +219,19 @@ void PreAimCourse::initBindB() {
     // old bot at y = 3.0 was sunk 0.5 m into the box.
     b.name = "B Site Center Box";
     b.pos = { 111.0f, 3.5f, -58.0f };
-    b.yawDeg = 180.0f;
+    b.yawDeg = -173.0f;
     b.reactionLimit = 0.42;
     m_bots.push_back(b);
 
     b.name = "B Elbow Hold";
     b.pos = { 115.0f, 3.0f, -72.0f };
-    b.yawDeg = 200.0f;
+    b.yawDeg = -170.0f;
     b.reactionLimit = 0.40;
     m_bots.push_back(b);
 
     b.name = "B Hall / Hell Deep Hold";
     b.pos = { 130.0f, 3.0f, -53.0f };
-    b.yawDeg = 270.0f;
+    b.yawDeg = -134.0f;
     b.reactionLimit = 0.45;
     m_bots.push_back(b);
 }
@@ -194,9 +252,11 @@ void PreAimCourse::initHavenA() {
 
     // FIXED 2026-11-06: A Long floor is y = 4.21 in the .bin, not 0.0 —
     // the old bot was buried 4.2 m inside the ramp.
+    // Yaw faces the spawn (90, -36): atan2(-5, -19) ~ -165 deg.
+    // (The old 170 deg faced 25 deg off the entry.)
     b.name = "A Long Corner Peek";
     b.pos = { 95.0f, 4.21f, -55.0f };
-    b.yawDeg = 170.0f;
+    b.yawDeg = -165.0f;
     b.reactionLimit = 0.45;
     m_bots.push_back(b);
 
@@ -266,27 +326,35 @@ void PreAimCourse::initHavenB() {
     b.reactionLimit = 0.45;
     m_bots.push_back(b);
 
+    // TACTICAL REDESIGN 2026-11-06: the old "Site Right Flank" at
+    // (12, -88) stood 2.8 m from Site Left Corner (14, -90) — two bots
+    // in the same corner, the random-placement signature. A floor probe
+    // of havenB.bin shows the site really extends east to x ~ 44
+    // (floor 3.0 at (44, -90)), so that bot moves to the true east
+    // corner. Facing the corridor spawn (24, -60) from the east, the
+    // player enters on their right — hence "East Corner". Yaw faces the
+    // entry: atan2(-20, -30) ~ -146 deg.
     b.name = "Site Left Corner";
     b.pos = { 14.0f, 2.87f, -90.0f };
-    b.yawDeg = 165.0f;
+    b.yawDeg = 162.0f;
     b.reactionLimit = 0.45;
     m_bots.push_back(b);
 
     b.name = "Site Default Box";
     b.pos = { 30.0f, 3.0f, -100.0f };
-    b.yawDeg = -150.0f;
+    b.yawDeg = -171.0f;
     b.reactionLimit = 0.42;
     m_bots.push_back(b);
 
     b.name = "Back Site Corner";
     b.pos = { 20.0f, 3.0f, -108.0f };
-    b.yawDeg = 180.0f;
+    b.yawDeg = 175.0f;
     b.reactionLimit = 0.45;
     m_bots.push_back(b);
 
-    b.name = "Site Right Flank";
-    b.pos = { 12.0f, 3.0f, -88.0f };
-    b.yawDeg = 55.0f;
+    b.name = "Site East Corner";
+    b.pos = { 44.0f, 3.0f, -90.0f };
+    b.yawDeg = -146.0f;
     b.reactionLimit = 0.40;
     m_bots.push_back(b);
 }
@@ -413,6 +481,329 @@ void PreAimCourse::initHavenAElevLadder() {
     m_bots.push_back(b);
 }
 
+// MAP-09. Added 2026-11-06 (sensible-tactical round). Post-plant
+// defuse on Ascent B: the spike is planted at Default (Triple), the
+// player retakes from CT. The four bots hold real post-plant spots —
+// Default (on the spike), Market Edge (closest retake entrance), Lane
+// Close (watches the B Main flank), Boathouse (the long post-plant
+// angle, hardest to clear) — and all face CT, the retake entry.
+// Spike timer 45 s (real Valorant: the spike detonates 45 s after
+// plant); holders are pre-aimed, so their reactions are 0.38–0.45 s,
+// slightly faster than the attack course. Clear all four before the
+// timer or the round is lost.
+// Spawn: the CT corridor at (-6, -95) — a floor probe of ascentB.bin
+// shows the CT floor (y = 1.003) runs from (-6, -88) to (-6, -95);
+// (-6, -100) is a void, so -95 is as deep into CT as the .bin goes.
+void PreAimCourse::initAscentBDefuse() {
+    m_timeLimitSec = 45.0;
+    m_spawnPos = { -6.0f, 1.0f, -95.0f };
+    // Faces the first bot (Default Box at -32, -66):
+    // yaw = atan2(-26, -29) ~ -138 deg.
+    m_spawnYaw = -138.0f;
+
+    PreAimBot b;
+
+    // On the spike (Default / Triple). Faces CT: atan2(26, 29) ~ 42.
+    b.name = "B Site Default Box (Spike)";
+    b.pos = { -32.0f, 1.0f, -66.0f };
+    b.yawDeg = 42.0f;
+    b.reactionLimit = 0.40;
+    m_bots.push_back(b);
+
+    // Holds the closest retake entrance (CT). Faces CT:
+    // atan2(2, 25) ~ 5 deg.
+    b.name = "Market Door Edge";
+    b.pos = { -8.0f, 1.0f, -70.0f };
+    b.yawDeg = 5.0f;
+    b.reactionLimit = 0.38;
+    m_bots.push_back(b);
+
+    // Watches the B Main flank. Faces CT: atan2(18.5, 36.5) ~ 27 deg.
+    b.name = "Lane Close Left Corner";
+    b.pos = { -24.5f, 1.0f, -58.5f };
+    b.yawDeg = 27.0f;
+    b.reactionLimit = 0.42;
+    m_bots.push_back(b);
+
+    // The long post-plant angle from the back site. Faces CT:
+    // atan2(34, 26) ~ 53 deg.
+    b.name = "Boathouse Front Entrance";
+    b.pos = { -40.0f, -0.83f, -69.0f };
+    b.yawDeg = 53.0f;
+    b.reactionLimit = 0.45;
+    m_bots.push_back(b);
+}
+
+// MAP-10. Added 2026-11-06. Post-plant defuse on Bind B: the player
+// retakes from B Hall — the defender-side corridor (a floor probe of
+// bindB.bin shows the Hall floor at y = 3.0 runs z -45..-65 at x ~ 130;
+// east of x = 130 there is no floor, so the Hall IS the retake entry).
+// The five bots hold the post-plant spread: Sand (site entry), Center
+// Box / Tube (mid site), Elbow (deep corner), Garden + Hookah (watch
+// the Long flank). All face Hall. Spike timer 45 s.
+void PreAimCourse::initBindBDefuse() {
+    m_timeLimitSec = 45.0;
+    m_spawnPos = { 130.0f, 3.0f, -53.0f };
+    // Faces the first bot (Sand Container at 115, -48):
+    // yaw = atan2(-15, -5) ~ -108 deg.
+    m_spawnYaw = -108.0f;
+
+    PreAimBot b;
+
+    // Site entry, closest to Hall. Faces Hall: atan2(15, 5) ~ 72 deg.
+    b.name = "Site Sand Container Front";
+    b.pos = { 115.0f, 3.08f, -48.0f };
+    b.yawDeg = 72.0f;
+    b.reactionLimit = 0.40;
+    m_bots.push_back(b);
+
+    // Mid-site Tube box. Faces Hall: atan2(19, -5) ~ 105 deg.
+    b.name = "B Site Center Box";
+    b.pos = { 111.0f, 3.5f, -58.0f };
+    b.yawDeg = 105.0f;
+    b.reactionLimit = 0.42;
+    m_bots.push_back(b);
+
+    // Deep corner. Faces Hall: atan2(15, -19) ~ 142 deg.
+    b.name = "B Elbow Hold";
+    b.pos = { 115.0f, 3.0f, -72.0f };
+    b.yawDeg = 142.0f;
+    b.reactionLimit = 0.45;
+    m_bots.push_back(b);
+
+    // Watches the Long flank from the Garden ramp. Faces Hall:
+    // atan2(28, 13) ~ 65 deg.
+    b.name = "Garden Vista Left Angle";
+    b.pos = { 102.0f, 5.33f, -40.0f };
+    b.yawDeg = 65.0f;
+    b.reactionLimit = 0.38;
+    m_bots.push_back(b);
+
+    // Watches the Long flank from the Hookah window. Faces Hall:
+    // atan2(41, 16.5) ~ 68 deg.
+    b.name = "Hookah Window Long Hold";
+    b.pos = { 89.0f, 5.0f, -36.5f };
+    b.yawDeg = 68.0f;
+    b.reactionLimit = 0.38;
+    m_bots.push_back(b);
+}
+
+// MAP-11. Added 2026-11-06. Post-plant defuse on Haven A: the player
+// retakes from Heaven — the classic A retake position. (There is no CT
+// floor in the .bin north of the site: a probe shows z -90..-110 is a
+// void except a 3.92 m lower area at (100, -110) with no walk-up, so
+// Heaven, at the verified 10.35 m floor, is the only real retake
+// perch.) The four bots hold the post-plant spread around the Default
+// plant spot and all face Heaven. Spike timer 45 s. Note the height
+// spread: the player shoots DOWN from 10.35 m at heads from 1.91 m
+// (Short) to 7.73 m (Default) — the retake is a vertical-flick drill
+// as much as a clear.
+void PreAimCourse::initHavenADefuse() {
+    m_timeLimitSec = 45.0;
+    m_spawnPos = { 118.0f, 10.35f, -85.0f };
+    // Faces the first bot (Default Stack at 102, -76):
+    // yaw = atan2(-16, -9) ~ -119 deg.
+    m_spawnYaw = -119.0f;
+
+    PreAimBot b;
+
+    // On the spike (Default). Faces Heaven: atan2(16, 9) ~ 61 deg.
+    b.name = "A Site Default Stack (Spike)";
+    b.pos = { 102.0f, 7.73f, -76.0f };
+    b.yawDeg = 61.0f;
+    b.reactionLimit = 0.40;
+    m_bots.push_back(b);
+
+    // Under Heaven, covers the site from below. Faces Heaven: 90 deg.
+    b.name = "A Hell Under-Window Hold";
+    b.pos = { 113.0f, 6.96f, -85.0f };
+    b.yawDeg = 90.0f;
+    b.reactionLimit = 0.42;
+    m_bots.push_back(b);
+
+    // Watches the Long flank. Faces Heaven: atan2(23, 30) ~ 37 deg.
+    b.name = "A Long Corner Peek";
+    b.pos = { 95.0f, 4.21f, -55.0f };
+    b.yawDeg = 37.0f;
+    b.reactionLimit = 0.45;
+    m_bots.push_back(b);
+
+    // Watches the Short flank. Faces Heaven: atan2(38, 15) ~ 68 deg.
+    b.name = "A Short / Sewers Flank";
+    b.pos = { 80.0f, 1.91f, -70.0f };
+    b.yawDeg = 68.0f;
+    b.reactionLimit = 0.38;
+    m_bots.push_back(b);
+}
+
+// MAP-12. Added 2026-11-06. 1v5 clutch on Ascent B: the player enters
+// from B Main against five bots spread across the site's real anchor
+// spots. Fair by design, not by nerfing the bots:
+// - Reaction times are STAGGERED by angle distance (Lane 0.55 s, Green
+//   Box 0.65 s, Default 0.80 s, Boathouse Stairs 1.05 s, CT Arch
+//   1.25 s) — the far angles give you time, the close ones do not.
+// - The engine only runs a bot's reaction timer while the bot is in
+//   the player's sight cone, so a bot you are not looking at cannot
+//   fire. The clutch skill this trains is the real one: isolate 1v1s,
+//   never face two angles at once.
+// - 3 hits = round lost (m_maxDamage = 3): each bot hit is ~35 HP of
+//   a 100 HP round. There is no timer — a clutch is won by patience,
+//   not speed.
+void PreAimCourse::initAscentBClutch() {
+    m_maxDamage = 3;
+    m_spawnPos = { -23.0f, 1.0f, -50.0f };
+    // Faces the first bot (Lane Close at -24.5, -58.5): ~ -10 deg.
+    m_spawnYaw = -10.0f;
+
+    PreAimBot b;
+
+    b.name = "Lane Close Left Corner";
+    b.pos = { -24.5f, 1.0f, -58.5f };
+    b.yawDeg = 170.0f;
+    b.reactionLimit = 0.55;
+    m_bots.push_back(b);
+
+    b.name = "Green Box Top (Elevated Head Level)";
+    b.pos = { -25.0f, 2.95f, -62.0f };
+    b.yawDeg = 170.0f;
+    b.reactionLimit = 0.65;
+    m_bots.push_back(b);
+
+    b.name = "B Site Default Box";
+    b.pos = { -32.0f, 1.0f, -66.0f };
+    b.yawDeg = 150.0f;
+    b.reactionLimit = 0.80;
+    m_bots.push_back(b);
+
+    // Deep back-site corner instead of Boathouse Front (MAP-01's pick):
+    // the clutch needs the two long angles, and the Stairs corner is
+    // the deeper, harder clear. Faces the entry: atan2(29, -21) ~ 126.
+    b.name = "Boathouse Stairs / Back Alley";
+    b.pos = { -52.0f, 1.5f, -71.0f };
+    b.yawDeg = 126.0f;
+    b.reactionLimit = 1.05;
+    m_bots.push_back(b);
+
+    // The long retake angle — the slowest reaction because it is the
+    // farthest duel (38 m from the spawn). Faces the entry: -156 deg.
+    b.name = "CT Arch Long Range Peek";
+    b.pos = { -6.0f, 1.0f, -88.0f };
+    b.yawDeg = -156.0f;
+    b.reactionLimit = 1.25;
+    m_bots.push_back(b);
+}
+
+// MAP-13. Added 2026-11-06. Crosshair-placement drill on Bind B Long:
+// the same six anchor spots as MAP-02, but BODY SHOTS DO NOT KILL
+// (m_headshotsOnly) — the round only ends on headshots. The drill is
+// keeping the crosshair at head height while the ground under the
+// enemy changes: Garden 5.33 m and Hookah 5.0 m are elevated, Sand
+// 3.08 m / Center 3.5 m / Elbow 3.0 m / Hall 3.0 m are low, so the head
+// line drops ~2.3 m as you walk down the lane. Wasted body shots are
+// counted (see bodyHitsWasted) and shown on the results screen — the
+// score that matters here is headshot rate + average vertical error,
+// both already tracked. No timer, no damage limit: precision, not
+// speed.
+void PreAimCourse::initBindBHeadHeight() {
+    m_headshotsOnly = true;
+    m_spawnPos = { 108.0f, 3.96f, -32.0f };
+    // Faces the first bot (Garden Vista at 102, -40): ~ -37 deg.
+    m_spawnYaw = -37.0f;
+
+    PreAimBot b;
+
+    b.name = "Garden Vista Left Angle";
+    b.pos = { 102.0f, 5.33f, -40.0f };
+    b.yawDeg = 143.0f;
+    b.reactionLimit = 0.45;
+    m_bots.push_back(b);
+
+    b.name = "Hookah Window Long Hold";
+    b.pos = { 89.0f, 5.0f, -36.5f };
+    b.yawDeg = 103.0f;
+    b.reactionLimit = 0.45;
+    m_bots.push_back(b);
+
+    b.name = "Site Sand Container Front";
+    b.pos = { 115.0f, 3.08f, -48.0f };
+    b.yawDeg = -156.0f;
+    b.reactionLimit = 0.45;
+    m_bots.push_back(b);
+
+    b.name = "B Site Center Box";
+    b.pos = { 111.0f, 3.5f, -58.0f };
+    b.yawDeg = -173.0f;
+    b.reactionLimit = 0.45;
+    m_bots.push_back(b);
+
+    b.name = "B Elbow Hold";
+    b.pos = { 115.0f, 3.0f, -72.0f };
+    b.yawDeg = -170.0f;
+    b.reactionLimit = 0.45;
+    m_bots.push_back(b);
+
+    b.name = "B Hall / Hell Deep Hold";
+    b.pos = { 130.0f, 3.0f, -53.0f };
+    b.yawDeg = -134.0f;
+    b.reactionLimit = 0.45;
+    m_bots.push_back(b);
+}
+
+// MAP-14. Added 2026-11-06. Corner-holding, from the defender's side:
+// the player IS the Boathouse anchor and five attackers push in from
+// B Main. The bots "peek" in order — their reactions are staggered
+// 0.50–1.05 s (Lane first, CT Arch last), simulating the push — and
+// every bot faces the Boathouse, the angle it is clearing. The drill
+// is holding one angle and tapping each peek as it comes, instead of
+// swinging. No timer, no damage limit: a hold drill, not a round.
+// Spawn is the Boathouse floor itself (-0.83 m, verified in the
+// validation round).
+void PreAimCourse::initAscentBAnchorHold() {
+    m_spawnPos = { -40.0f, -0.83f, -69.0f };
+    // Faces the first bot (Lane Close at -24.5, -58.5):
+    // yaw = atan2(15.5, -10.5) ~ 124 deg.
+    m_spawnYaw = 124.0f;
+
+    PreAimBot b;
+
+    // First peek, from the Lane. Faces Boathouse: atan2(-15.5, 10.5) ~ -56.
+    b.name = "Lane Close Left Corner";
+    b.pos = { -24.5f, 1.0f, -58.5f };
+    b.yawDeg = -56.0f;
+    b.reactionLimit = 0.50;
+    m_bots.push_back(b);
+
+    // Elevated peek over the Green Box. Faces Boathouse:
+    // atan2(-15, 7) ~ -65 deg.
+    b.name = "Green Box Top (Elevated Head Level)";
+    b.pos = { -25.0f, 2.95f, -62.0f };
+    b.yawDeg = -65.0f;
+    b.reactionLimit = 0.60;
+    m_bots.push_back(b);
+
+    // Default peek. Faces Boathouse: atan2(-8, 3) ~ -69 deg.
+    b.name = "B Site Default Box";
+    b.pos = { -32.0f, 1.0f, -66.0f };
+    b.yawDeg = -69.0f;
+    b.reactionLimit = 0.75;
+    m_bots.push_back(b);
+
+    // Market-side peek. Faces Boathouse: atan2(-32, -1) ~ -92 deg.
+    b.name = "Market Door Edge";
+    b.pos = { -8.0f, 1.0f, -70.0f };
+    b.yawDeg = -92.0f;
+    b.reactionLimit = 0.90;
+    m_bots.push_back(b);
+
+    // The late CT peek — the longest angle in. Faces Boathouse:
+    // atan2(-34, -19) ~ -119 deg.
+    b.name = "CT Arch Long Range Peek";
+    b.pos = { -6.0f, 1.0f, -88.0f };
+    b.yawDeg = -119.0f;
+    b.reactionLimit = 1.05;
+    m_bots.push_back(b);
+}
+
 int PreAimCourse::botsRemaining() const {
     int rem = 0;
     for (const auto& b : m_bots) {
@@ -489,6 +880,22 @@ void PreAimCourse::update(double now, double /*dt*/, const Vec3& playerEyePos, f
             }
         }
     }
+
+    // Fail states (2026-11-06 tactical round). Checked here, in update(),
+    // so main.cpp only has to ask isFailed() once per frame.
+    // - Spike timer: once the limit passes, the round is lost even if
+    //   bots are still alive. (A course already complete cannot fail:
+    //   isComplete() is checked first in main.cpp.)
+    if (m_failReason == FailReason::None && m_timeLimitSec > 0.0 &&
+        now - m_startTime >= m_timeLimitSec) {
+        m_failReason = FailReason::TimeUp;
+    }
+    // - Damage limit: 3 hits = round lost (clutch). Each bot fires at
+    //   most once (firedAtPlayer), so m_damageTaken only grows here.
+    if (m_failReason == FailReason::None && m_maxDamage > 0 &&
+        m_damageTaken >= m_maxDamage) {
+        m_failReason = FailReason::DamageLimit;
+    }
 }
 
 float PreAimCourse::activeBotReactionProgress(double now) const {
@@ -563,6 +970,16 @@ int PreAimCourse::shoot(double now, const Vec3& eyePos, const Vec3& fwdRay, bool
 
     if (hitBotIdx >= 0) {
         auto& bot = m_bots[hitBotIdx];
+        // Headshots-only drill (2026-11-06 tactical round, MAP-13): a
+        // body hit does not kill — it is a wasted shot. The bot stays
+        // alive, no history entry is recorded, and the shot still returns
+        // 1 so the hit sound plays. (Note the hit test picks the CLOSEST
+        // hit first, so a body in front still blocks a headshot behind
+        // it — the same as a real wall of cover.)
+        if (m_headshotsOnly && hitRegion == 1) {
+            m_bodyHitsWasted++;
+            return 1;
+        }
         bot.alive = false;
 
         outResult.botName = bot.name;

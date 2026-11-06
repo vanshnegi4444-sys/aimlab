@@ -261,7 +261,7 @@ void ui::drawPlayOverlay(const Trainer& t, const Settings& s, const RoutineManag
     ImGui::End();
 }
 
-void ui::drawPreAimOverlay(const PreAimCourse& course, const Settings& /*s*/, const Player& player) {
+void ui::drawPreAimOverlay(const PreAimCourse& course, const Settings& /*s*/, const Player& player, double now) {
     ImGui::SetNextWindowPos(ImVec2(16, 16), ImGuiCond_Always);
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
                              ImGuiWindowFlags_AlwaysAutoResize |
@@ -273,6 +273,26 @@ void ui::drawPreAimOverlay(const PreAimCourse& course, const Settings& /*s*/, co
     ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.2f, 1.0f), "[3D MAP WORKSHOP] %s", course.courseName().c_str());
     ImGui::Text("Bots Cleared: %d / %d   |   Damage Taken: %d",
         course.botsCleared(), course.totalBots(), course.damageTakenCount());
+
+    // Spike timer (defuse courses, 2026-11-06 tactical round): red under
+    // 10 s so the player feels the plant pressure.
+    if (course.hasTimeLimit()) {
+        double t = course.timeRemaining(now);
+        ImVec4 col = t < 10.0 ? ImVec4(1.0f, 0.25f, 0.25f, 1.0f)
+                              : ImVec4(1.0f, 0.85f, 0.2f, 1.0f);
+        ImGui::TextColored(col, "SPIKE: %.0f s to detonation", t);
+    }
+    // Damage limit (clutch courses): 3 hits = round lost.
+    if (course.maxDamage() > 0) {
+        ImGui::Text("Damage: %d / %d hits  (round lost at %d)",
+            course.damageTakenCount(), course.maxDamage(), course.maxDamage());
+    }
+    // Headshots-only tag (crosshair drill): body shots do not kill.
+    if (course.isHeadshotsOnly()) {
+        ImGui::TextColored(ImVec4(0.3f, 0.85f, 1.0f, 1.0f),
+            "HEADSHOTS ONLY — body shots do not kill (wasted: %d)",
+            course.bodyHitsWasted());
+    }
     ImGui::Spacing();
 
     // Crosshair Level Indicator
@@ -473,7 +493,17 @@ void ui::drawPreAimResults(const PreAimCourse& course, UiRequest& req) {
     ImGui::SetNextWindowSize(ImVec2(560, 620), ImGuiCond_FirstUseEver);
     ImGui::Begin("Map Workshop Report", nullptr, ImGuiWindowFlags_NoCollapse);
 
-    ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.5f, 1.0f), "COURSE COMPLETE: %s", course.courseName().c_str());
+    // Fail states (2026-11-06 tactical round): a defuse lost to the
+    // timer or a clutch lost to damage says so plainly instead of
+    // "COURSE COMPLETE" — the bots-cleared count below shows how far
+    // the player got.
+    if (course.failedByTimer()) {
+        ImGui::TextColored(ImVec4(1.0f, 0.25f, 0.25f, 1.0f), "SPIKE DETONATED — DEFUSE FAILED: %s", course.courseName().c_str());
+    } else if (course.failedByDamage()) {
+        ImGui::TextColored(ImVec4(1.0f, 0.25f, 0.25f, 1.0f), "ELIMINATED — CLUTCH LOST: %s", course.courseName().c_str());
+    } else {
+        ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.5f, 1.0f), "COURSE COMPLETE: %s", course.courseName().c_str());
+    }
     ImGui::Separator();
 
     int total = course.totalBots();
@@ -527,6 +557,15 @@ void ui::drawPreAimResults(const PreAimCourse& course, UiRequest& req) {
         ImGui::TextColored(dmg == 0 ? ImVec4(0.2f, 1.0f, 0.4f, 1.0f) : ImVec4(1.0f, 0.35f, 0.35f, 1.0f),
             "%d times", dmg);
 
+        // Headshots-only drill: body shots do not kill, so they are
+        // counted separately — a wasted shot is the metric here.
+        if (course.isHeadshotsOnly()) {
+            ImGui::TableNextRow(); ImGui::TableNextColumn();
+            ImGui::Text("Body Hits Wasted (headshots only)"); ImGui::TableNextColumn();
+            ImGui::TextColored(course.bodyHitsWasted() == 0 ? ImVec4(0.2f, 1.0f, 0.4f, 1.0f) : ImVec4(1.0f, 0.6f, 0.2f, 1.0f),
+                "%d wasted", course.bodyHitsWasted());
+        }
+
         ImGui::EndTable();
     }
 
@@ -562,7 +601,11 @@ void ui::drawPreAimResults(const PreAimCourse& course, UiRequest& req) {
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.12f, 0.18f, 1.0f));
     ImGui::BeginChild("PreAimCoachBox", ImVec2(0, 70), true);
     ImGui::TextColored(ImVec4(0.2f, 0.9f, 0.8f, 1.0f), "CROSSHAIR PLACEMENT COACH:");
-    if (hsPct >= 70.0f) {
+    if (course.failedByTimer()) {
+        ImGui::TextWrapped("The spike detonated. Retakes are won on the clock: clear the closest angle first, skip the flank check, and stick the defuse only after the site is actually clear.");
+    } else if (course.failedByDamage()) {
+        ImGui::TextWrapped("Three hits and the round is gone. A clutch is not five duels at once — isolate one angle at a time and use the reaction stagger: the far angles give you over a second.");
+    } else if (hsPct >= 70.0f) {
         ImGui::TextWrapped("Exceptional head-level discipline! Your crosshair was locked to enemy head heights around corners.");
     } else if (avgVertErr > 1.2f) {
         ImGui::TextWrapped("Warning: Your crosshair was drifting above/below head level on corners. Lift crosshair before peeking boxes!");

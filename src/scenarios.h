@@ -37,6 +37,15 @@ enum class ScenarioId {
     HavenC_PreAim,
     HavenC_Retake,
     HavenA_ElevLadder,
+    // Added 2026-11-06 (sensible-tactical round). Same rule: append
+    // only, before Count. Codes MAP-09..MAP-14 — MAP-08 stays reserved
+    // for the spec's Pre-aim Ghost (B3 table), which is still pending.
+    AscentB_Defuse,
+    BindB_Defuse,
+    HavenA_Defuse,
+    AscentB_Clutch1v5,
+    BindB_HeadHeight,
+    AscentB_AnchorHold,
     Count
 };
 
@@ -47,7 +56,13 @@ inline bool isMapPreAim(ScenarioId id) {
            id == ScenarioId::HavenB_PreAim ||
            id == ScenarioId::HavenC_PreAim ||
            id == ScenarioId::HavenC_Retake ||
-           id == ScenarioId::HavenA_ElevLadder;
+           id == ScenarioId::HavenA_ElevLadder ||
+           id == ScenarioId::AscentB_Defuse ||
+           id == ScenarioId::BindB_Defuse ||
+           id == ScenarioId::HavenA_Defuse ||
+           id == ScenarioId::AscentB_Clutch1v5 ||
+           id == ScenarioId::BindB_HeadHeight ||
+           id == ScenarioId::AscentB_AnchorHold;
 }
 
 const char* getCategoryName(ScenarioCategory cat);

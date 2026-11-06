@@ -185,6 +185,12 @@ static void enterPlay(Trainer& trainer, Camera& camera, const Settings& s, Scena
         else if (scId == ScenarioId::HavenC_PreAim) cid = MapCourseId::HavenC_Clear;
         else if (scId == ScenarioId::HavenC_Retake) cid = MapCourseId::HavenC_Retake;
         else if (scId == ScenarioId::HavenA_ElevLadder) cid = MapCourseId::HavenA_ElevLadder;
+        else if (scId == ScenarioId::AscentB_Defuse) cid = MapCourseId::AscentB_Defuse;
+        else if (scId == ScenarioId::BindB_Defuse) cid = MapCourseId::BindB_Defuse;
+        else if (scId == ScenarioId::HavenA_Defuse) cid = MapCourseId::HavenA_Defuse;
+        else if (scId == ScenarioId::AscentB_Clutch1v5) cid = MapCourseId::AscentB_Clutch1v5;
+        else if (scId == ScenarioId::BindB_HeadHeight) cid = MapCourseId::BindB_HeadHeight;
+        else if (scId == ScenarioId::AscentB_AnchorHold) cid = MapCourseId::AscentB_AnchorHold;
 
         g_preAimCourse.start(cid, glfwGetTime());
         ensureMapLoaded(g_preAimCourse.mapBinPath());
@@ -359,7 +365,10 @@ int main() {
                 g_player.update(dt, pInput, camera, &g_mapMesh);
                 camera.pos = g_player.eyePos();
                 g_preAimCourse.update(now, dt, g_player.eyePos(), camera.pitchDeg, camera.yawDeg);
-                if (g_preAimCourse.isComplete()) {
+                // A map course ends on a clear OR a fail (spike detonated
+                // / clutch lost — 2026-11-06 tactical round). The results
+                // screen shows which one it was.
+                if (g_preAimCourse.isComplete() || g_preAimCourse.isFailed()) {
                     enterPreAimResults();
                 }
             } else {
@@ -423,7 +432,7 @@ int main() {
         } else if (g_mode == Mode::Play) {
             if (g_isMapCourseActive) {
                 if (s.showOverlay)
-                    ui::drawPreAimOverlay(g_preAimCourse, s, g_player);
+                    ui::drawPreAimOverlay(g_preAimCourse, s, g_player, now);
                 ImVec2 ds = ImGui::GetIO().DisplaySize;
                 ui::drawPreAimCrosshair(s, g_preAimCourse, g_player, ds.x, ds.y);
             } else {

@@ -84,11 +84,12 @@ ValoAim loads real 3D Valorant map geometry directly from extracted game assets 
 - **Corner Clearing Progression:**
   1. *Lane Close Left Corner (tight 90° angle check)* — requires clearing the immediate left corner without overpeeking into site.
   2. *Green Box Top (Elevated Head Level)* — **Crucial for crosshair height!** Bot stands on top of the radianite crate (+1.2m elevation). Forces you to lift your crosshair before slicing the angle.
-  3. *Market Door Peeker* — Mid-range duel against defender peeking Market door.
-  4. *B Site Default Box* — Standard plant box hold.
-  5. *Boathouse Front Entrance* — Slicing the back-site corner.
+  3. *Market Door Edge* — defender holding the Market door and the east site edge. (Moved 2026-11-06: the old spot (-23, -66.5) was mid-site, mislabelled — the real Market-side floor is the east edge at x = -8.)
+  4. *B Site Default Box* — Standard plant box hold (Triple — the safest plant spot, played from Boathouse).
+  5. *Boathouse Front Entrance* — Slicing the back-site corner (the anchor: most cover, hardest to clear, the post-plant spot).
   6. *Boathouse Workshop Stairs* — Stairs angle requiring diagonal crosshair tracking down the ramp.
   7. *CT Arch Long Range Peek* — Long range headshot duel against defender holding from CT spawn arch.
+- **Tactical note (2026-11-06):** every bot now faces the B Main entry (yaw = atan2 toward the spawn) — the old yaws faced into the site, away from the attacker. See "Tactical grounding" below.
 
 ### 2. Bind B: Long & Hookah Clearing (`assets/maps/bindB.bin`)
 - **Player Spawn:** B Long entrance near Garden.
@@ -99,6 +100,7 @@ ValoAim loads real 3D Valorant map geometry directly from extracted game assets 
   4. *B Site Center Box* — Default site dueling angle.
   5. *B Elbow Hold* — Tight defensive angle hold.
   6. *B Hall / Hell Deep Hold* — Deep corner check in B Hall ("Hell").
+- **Tactical note (2026-11-06):** positions unchanged (they were already real spots), but Garden, Hookah and Hell faced the wrong way — all six bots now face the B Long entry. See "Tactical grounding" below.
 
 ### 3. Haven A: Long to Heaven Angle Slicing (`assets/maps/havenA.bin`)
 - **Player Spawn:** A Long entrance corridor.
@@ -108,6 +110,7 @@ ValoAim loads real 3D Valorant map geometry directly from extracted game assets 
   3. *A Heaven High Window* — Elevated sniper window hold. Trains instantaneous vertical micro-flick from ground level to Heaven.
   4. *A Hell Under-Window Hold* — Ground level contrast against Heaven.
   5. *A Short / Sewers Flank* — Flank angle check.
+- **Tactical note (2026-11-06):** positions unchanged; only the A Long bot's yaw was wrong (170° faced 25° off the entry — now -165°, exactly at the A Long ramp). Heaven/Hell/Default/Short already faced the entry.
 
 ### 4. Haven B: Corridor to Site Entry & Clear (`assets/maps/havenB.bin`)
 - **Player Spawn:** B corridor, south end, looking up the ramp toward B Site.
@@ -116,8 +119,8 @@ ValoAim loads real 3D Valorant map geometry directly from extracted game assets 
   2. *Site Left Corner* — Close corner check on site entry.
   3. *Site Default Box* — Standard plant box hold.
   4. *Back Site Corner* — Deep corner check at the back of site.
-  5. *Site Right Flank* — Flank angle check on the site's right side.
-- **Note:** bot positions were measured from the map file itself (Blender floor scan: corridor floor ~1.0 m, site floor ~3.0 m). Bot facing angles are approximate — check them visually on the first run.
+  5. *Site East Corner* — The site's far east corner. (Moved 2026-11-06: the old "Site Right Flank" at (12, -88) stood 2.8 m from Site Left Corner — two bots in the same corner. The site really extends east to x ~ 44.)
+- **Note:** bot positions were measured from the map file itself (Blender floor scan: corridor floor ~1.0 m, site floor ~3.0 m). Bot facing angles are now computed exactly toward the corridor entry (atan2 toward the spawn), not approximate.
 
 ---
 
@@ -303,7 +306,7 @@ To add:
 
 ## B3. Scenario catalogue (exact parameters)
 
-**Implementation status (2026-11-06):** implemented in code — C-01, C-02, C-03, C-04, C-05, C-06, C-07, P-02, T-01, T-02, T-05, R-02, R-03, M-01, MAP-01, MAP-02, MAP-03 (Haven A), MAP-04 (Haven B), MAP-05 (Haven C), MAP-06 (Haven C Retake), MAP-07 (Haven A Elevation Ladder). The code's P-03 is a custom drill ("Off-Angle Strafe Confirm", built from a Range screenshot) and is **not** the Comfort-zone Shrink in the table below. The code's R-01 is the Angle Hold drill (the spec's R-02); a pure Reaction Test (spec R-01) is not implemented yet. Still pending: C-08, P-01, T-03, T-04, S-01/02/03, R-01, R-04, M-02, M-03, MAP-08 (Pre-aim Ghost), benchmarks/ranks.
+**Implementation status (2026-11-06):** implemented in code — C-01, C-02, C-03, C-04, C-05, C-06, C-07, P-02, T-01, T-02, T-05, R-02, R-03, M-01, MAP-01, MAP-02, MAP-03 (Haven A), MAP-04 (Haven B), MAP-05 (Haven C), MAP-06 (Haven C Retake), MAP-07 (Haven A Elevation Ladder), MAP-09 (Ascent B Defuse), MAP-10 (Bind B Defuse), MAP-11 (Haven A Defuse), MAP-12 (Ascent B 1v5 Clutch), MAP-13 (Bind B Head-Height Lane), MAP-14 (Ascent B Anchor Hold). MAP-08 is the spec's Pre-aim Ghost and is still pending — the tactical round deliberately skipped it so the new codes would not collide with the spec. The code's P-03 is a custom drill ("Off-Angle Strafe Confirm", built from a Range screenshot) and is **not** the Comfort-zone Shrink in the table below. The code's R-01 is the Angle Hold drill (the spec's R-02); a pure Reaction Test (spec R-01) is not implemented yet. Still pending: C-08, P-01, T-03, T-04, S-01/02/03, R-01, R-04, M-02, M-03, MAP-08 (Pre-aim Ghost), benchmarks/ranks.
 
 Units: distances in **metres**, angles in **degrees from crosshair**, speeds
 in **m/s**, radius = sphere radius. A Valorant head is ~0.12 m radius (the
@@ -390,6 +393,12 @@ Uses the `.blend` maps in `Maps/` exported to glTF (see B9).
 | MAP-06 | **Haven C – Retake** | Spawn deep on C site and retake it. 4 bots (Main Entry, West Corner, Entry Right, Long Approach). The reverse of MAP-05. |
 | MAP-07 | **Haven A – Elevation Ladder** *(drill)* | Vertical-flick drill, not a tactical clear: 4 bots, one per verified level — Sewers 1.9 m, A Long 4.2 m, site 7.7 m, Heaven 10.4 m — ordered low to high. |
 | MAP-08 | **Pre-aim Ghost** *(pending)* | Same as above, but a transparent "ideal crosshair line" is drawn along the route. Toggle it off once learned. |
+| MAP-09 | **Ascent B – Post-Plant Defuse** | Retake from CT against 4 post-plant holders (Default, Market Edge, Lane, Boathouse). 45 s spike timer — clear before it detonates. |
+| MAP-10 | **Bind B – Post-Plant Defuse** | Retake from B Hall against 5 post-plant holders (Sand, Center Box, Elbow, Garden, Hookah). 45 s spike timer. |
+| MAP-11 | **Haven A – Post-Plant Defuse** | Retake from Heaven against 4 post-plant holders (Default, Hell, Long, Short). 45 s spike timer; you shoot down from 10.35 m. |
+| MAP-12 | **Ascent B – 1v5 Clutch** | Last alive vs 5 bots on the site anchors. Reactions staggered 0.55–1.25 s by angle distance; 3 hits = round lost. No timer. |
+| MAP-13 | **Bind B – Head-Height Lane** *(drill)* | Crosshair drill down B Long: same 6 anchors as MAP-02, but body shots do not kill — headshots only. Head height drops ~2.3 m along the lane. |
+| MAP-14 | **Ascent B – Boathouse Anchor Hold** | Corner-holding from the defender's side: you are the Boathouse anchor, 5 attackers peek in from B Main in order (reactions 0.50–1.05 s). |
 
 **Stars (moment mode):** ★ cleared; ★★ cleared under par time; ★★★ under par,
 zero damage taken, all kills yours.
@@ -982,7 +991,9 @@ pending). To add one you touch four places:
 
 Map workshops are different: the course (bots, spawn, yaw) lives in
 `src/preaim_course.cpp` (`initAscentB` / `initBindB` / `initHavenA` /
-`initHavenB` / `initHavenC` / `initHavenCRetake` / `initHavenAElevLadder`),
+`initHavenB` / `initHavenC` / `initHavenCRetake` / `initHavenAElevLadder` /
+`initAscentBDefuse` / `initBindBDefuse` / `initHavenADefuse` /
+`initAscentBClutch` / `initBindBHeadHeight` / `initAscentBAnchorHold`),
 the dispatch in `main.cpp` `enterPlay()`, and the geometry in
 `assets/maps/*.bin`.
 
@@ -1072,6 +1083,141 @@ Still open (not code bugs — the `.bin` files themselves):
   has a hole at (92, -45) and the Short route crosses a pit — the player
   can shoot every bot from the spawn (all within 57 m), but cannot walk
   the full route. Same root cause as the holes above.
+- **No CT floor for a Haven B or Haven C defuse (2026-11-06):** a probe
+  of `havenB.bin` shows no floor beyond the Back Site Corner (z < -108
+  is a void), and a probe of `havenA.bin` shows no floor south of the C
+  site (z < -135 is a void) — so neither site has a retake entry to
+  spawn on. Their defuse scenarios were NOT built rather than faked.
+  (Haven A's defuse spawns on Heaven instead — the classic retake
+  perch — because the CT side north of the site is also a void.)
+- **No Market corridor in `ascentB.bin` (2026-11-06):** the east site
+  edge at x = -8 has floor (y = 1.0) but x = 0 is a void — the Market
+  door position is the east site edge, not a corridor. The "Market
+  Door" bot stands there; it cannot stand "in Market".
+
+### Tactical grounding (2026-11-06)
+
+The original bot placements (made by the other AI) were random: bots
+stood anywhere, faced any direction, and the player spawned anywhere.
+This round re-grounded every course in how real players actually play
+these sites — researched from pro positioning guides and VOD-breakdown
+articles, not invented. Two rules now hold everywhere:
+
+1. **Every bot stands on a named spot a real player would hold** (the
+   anchor, the plant spot, the retake lane, the deep corner) and **faces
+   the angle it is holding** — yaw = atan2 toward the entry the attacker
+   comes from. The old code had 6 of 7 Ascent bots facing INTO the site
+   (away from the player) and 3 of 6 Bind bots facing the wrong way.
+2. **Every spawn is a real attack/retake entry** (B Main, B Long, A Long
+   ramp, B corridor, CT, Hall, Heaven, Boathouse) with the yaw facing
+   the first angle to clear.
+
+Sources (all read for this round; every tactical claim below traces to
+one of them):
+
+- Ascent B callouts & holds: https://esportsdriven.com/gaming/guides/111/valorant-ascent-map-callouts-guide-with-images — https://www.gearupbooster.com/blog/valorant-ascent-map-guide-pro-strategies.html — https://safezone-totoking.mystrikingly.com/blog/valorant-ascent-map-guide
+- Bind B callouts & holds: https://juked.gg/valorant/game-guide/valorant-bind-map-breakdown-best-plays-and-agent-synergies/ — https://www.strafe.com/articles/read/valorant-bind-guide/ — https://esportsdriven.com/gaming/guides/120/valorant-map-guide-bind
+- Haven A/C callouts & holds: https://esportsdriven.com/valorant/guides/122/valorant-haven-map-callouts-guide-with-images — https://www.cd44-vip.net/article/valorant-haven-guide-bangladesh-three-site-.html — https://overgear.com/guides/valorant/maps-list/
+- Crosshair placement: https://metabot.gg/en/valorant/guides/valorant-crosshair-placement-fundamentals — https://sassy.wtf/blog/valorant-crosshair-placement — https://1v9.gg/blog/how-to-improve-crosshair-placement-in-valorant — https://boosteria.org/guides/valorant-crosshair-placement-guide-head-level-angles-2026
+- Post-plant / retake / clutch: https://bo3.gg/valorant/articles/how-to-play-post-plant-in-valorant-positioning-and-utility-after-the-spike — https://cosmocheats.com/game-guides/valorant/ — https://valocheck.com/faq/
+
+What the sources say, and where each bot sits:
+
+- **Ascent B:** the anchor holds Boathouse / Back Site (most cover,
+  hardest to clear, the post-plant spot); Market watches B Main crossers
+  from safety; CT / Connector is the fastest retake entry; Triple boxes
+  are the safest plant spot (plant beside the boxes, parallel to
+  Boathouse); Lane is the shortest B Main → site path; attack smokes
+  Market + CT, clears Logs / Boathouse, closes the Market door, then
+  post-plants back toward B Main / B Stairs. Retake: attackers hide in
+  Back Site, clear B Main / Market first.
+- **Bind B:** defenders hold Elbow + Garden, Tube in the middle of the
+  site; Hookah / Window is the elevated entry, hard to clear; Split B
+  pressures Long + Hookah together, smokes Elbow, clears Tube and the
+  close corners; B Backsite + Platform are the post-plant spots; retake
+  doors are Hookah / Baths.
+- **Haven A:** the default plant is visible from Short / Long; Heaven is
+  elevated and sees Long + Short; Hell sits under Heaven, has cover
+  from Short, sees Long, and crossfires with Cubby on the post-plant;
+  Cubby is the deep corner post-plant spot; CT is the main retake
+  entrance. Entry order: clear Long / Short, smoke Heaven + link,
+  entry clears close left / right, carrier plants; then hold Heaven /
+  link and watch the flank.
+- **Haven C:** Long control alone is not enough if defenders hold
+  Garage; defenders play Platform + C Window.
+- **Crosshair placement:** head level always — height follows the ground
+  the enemy stands on (raise on ramps / boxes, lower looking down);
+  pre-aim the exact pixel at the corner edge, not the wall; do not hug
+  walls (a wider hold gives more reaction time); clear one angle at a
+  time ("slice the pie"); stop before shooting.
+- **Post-plant / retake / clutch:** the spike detonates **45 s** after
+  plant; defuse takes **7 s** with a half checkpoint at **3.5 s**;
+  post-plant spread into connected positions (one holds the closest
+  retake entrance, one watches the spike from long, one covers the
+  flank); retakers regroup, smoke the distant angle, clear close
+  corners in order of threat; a clutch is won by isolating 1v1s — never
+  face-check two angles at once.
+
+Placement audit (old → new; every Y is still a verified `.bin` floor):
+
+| course | bot | old | new | why |
+|---|---|---|---|---|
+| MAP-01 Ascent B | Lane Close | yaw 45° | yaw 170° | holds the Lane entry — must face B Main, not the site |
+| MAP-01 | Green Box Top | yaw 45° | yaw 170° | elevated, holds Lane + site from above |
+| MAP-01 | Market Door Peeker | (-23, 1, -66.5), yaw 90° | **Market Door Edge (-8, 1, -70), yaw -143°** | old spot was mid-site, mislabelled; real Market-side floor is the east edge (x = -8; x = 0 is a void) |
+| MAP-01 | Default Box | yaw 45° | yaw 150° | Triple — safest plant spot, holds Lane |
+| MAP-01 | Boathouse Front | yaw 30° | yaw 138° | back-site anchor, hardest to clear |
+| MAP-01 | Boathouse Stairs | yaw 60° | yaw 126° | deep back alley, post-plant spot |
+| MAP-01 | CT Arch | yaw -156° | unchanged | already faced the entry — the long retake angle |
+| MAP-02 Bind B | Garden / Hookah / Hell | yaw 20° / 0° / 270° | yaw 143° / 103° / -134° | faced into the site / due west; now face B Long |
+| MAP-02 | Sand / Center / Elbow | yaw 160° / 180° / 200° | yaw -156° / -173° / -170° | same spots, exact facing of the Long |
+| MAP-03 Haven A | A Long Corner | yaw 170° | yaw -165° | faced 25° off the entry |
+| MAP-03 | Default / Heaven / Hell / Short | — | unchanged | already faced the A Long ramp |
+| MAP-04 Haven B | Site Right Flank | (12, 3, -88), yaw 55° | **Site East Corner (44, 3, -90), yaw -146°** | old spot was 2.8 m from Site Left Corner — two bots in one corner; the site really extends east to x ~ 44 |
+| MAP-04 | Default Box / Back Corner | yaw -150° / 180° | yaw -171° / 175° | exact facing of the corridor entry |
+| MAP-05/06/07 | all bots | — | unchanged | yaws already faced the entry/spawn exactly |
+
+New scenario types (MAP-09..MAP-14; MAP-08 stays reserved for the
+spec's Pre-aim Ghost):
+
+- **Defuse (MAP-09/10/11):** post-plant retakes with a real **45 s**
+  spike timer. New engine mechanism: `PreAimCourse` gained
+  `timeLimitSec` + `startTime` + `isFailed()` / `failedByTimer()`;
+  `main.cpp` ends the course when the timer expires, and the results
+  screen says "SPIKE DETONATED — DEFUSE FAILED" instead of "COURSE
+  COMPLETE". The HUD shows the countdown (red under 10 s). Holders are
+  pre-aimed, so their reactions are 0.38–0.45 s — slightly faster than
+  the attack courses.
+- **1v5 clutch (MAP-12):** five bots, reactions staggered by angle
+  distance (0.55–1.25 s), and a new **3-hit damage limit**
+  (`maxDamage` + `failedByDamage()`; each hit is ~35 HP of a 100 HP
+  round). Fair because the engine only runs a bot's reaction timer
+  while the bot is in the player's sight cone — a bot you are not
+  looking at cannot fire — so the clutch trains the real skill:
+  isolate 1v1s, never face two angles at once. There is no timer; a
+  clutch is won by patience.
+- **Crosshair placement (MAP-13):** the Bind B Long lane as a
+  headshots-only drill (`headshotsOnly`: a body hit does not kill, it
+  is counted as wasted and shown on the results screen). Head height
+  drops ~2.3 m along the lane (Garden 5.33 m → site 3.0 m), so the
+  crosshair must drop with it. Scoring already exists: the results
+  screen tracks headshot rate and average crosshair vertical error —
+  those two numbers ARE the score here. No timer, no damage limit.
+- **Corner-holding (MAP-14):** the player IS the Boathouse anchor and
+  five attackers peek in from B Main in order (reactions staggered
+  0.50–1.05 s), every bot facing the Boathouse. A hold drill, not a
+  round: no timer, no damage limit.
+
+Verification (2026-11-06, Linux harness with the real `MapMesh`
+loader — `/tmp/harness/harness2.cpp`, not in the repo): **600 checks,
+0 failed.** All 13 courses: spawn on a floor, spawn yaw faces bot 1
+within 1°, every bot on its floor, every bot within 65 m, full clear
+without crashing. Timer: no fail at 44.9 s, `failedByTimer` at 45.1 s,
+resets on restart. Clutch: damage 0 before 0.55 s, 3 hits by 1.0 s →
+`failedByDamage`. Headshots-only: body shot returns 1, bot stays
+alive, `bodyHitsWasted` = 1, headshot kills; control body shot on the
+normal MAP-02 still kills. Old courses have no timer / damage limit /
+headshots-only — no behaviour change.
 
 ### Code rules (and where they are broken)
 
@@ -1092,6 +1238,13 @@ Still open (not code bugs — the `.bin` files themselves):
   floor meshes (a straight-line walk from spawn hits a gap within 1–17 m
   on every map — the player must weave around 1–3 m holes) and the
   missing Ascent A / Bind A geometry (see below).
+- **Tactical grounding is done (2026-11-06) — see "Tactical grounding"
+  above.** Every bot now stands on a named spot a real player would hold
+  and faces the entry it is holding; 6 new scenarios (MAP-09..MAP-14:
+  defuse × 3, 1v5 clutch, headshots-only lane, anchor hold). What could
+  NOT be built: Haven B / Haven C defuse (no CT floor in the .bins to
+  spawn a retake on) and a Market-corridor bot (the corridor is a void
+  in `ascentB.bin`).
 - **Scoring does not match the B4 formulas yet** (no accuracy² multiplier,
   speed bonus is a 40/20 step instead of the formula, tracking score is
   `onTargetTime × 250` instead of the B4 expression).
