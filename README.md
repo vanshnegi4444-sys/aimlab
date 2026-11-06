@@ -149,7 +149,7 @@ In your Tracker.gg profile (`V9pujari#0000` - Plat 2):
 - **3D Map Workshops:** Real Ascent B, Bind B, Haven A and Haven B geometry with Jett humanoid bots and full WASD navigation.
 - **Crosshair Level Guidance:** Real-time head height indicators and post-run vertical error diagnostics.
 - **V9pujari Daily Routine:** 6 structured blocks (18 sets total, ~16 mins of drills) tailored directly from your tracker.gg profile.
-- **19 Scenarios in Total:** 4 3D Map Workshops + 15 Precision, Tracking, Movement & Reaction Drills.
+- **22 Scenarios in Total:** 7 3D Map Workshops + 15 Precision, Tracking, Movement & Reaction Drills.
 - **Deep Analytics:** Overshoot vs. Undershoot %, Counter-strafe stop accuracy %, TTK (ms), and coach advice.
 - **Low-Latency Audio:** Procedural hit clicks and crisp metallic headshot dinks.
 - **Valorant Sens Engine:** Exact 0.07 deg/count rotation, eDPI, and cm/360 calculation.
@@ -303,7 +303,7 @@ To add:
 
 ## B3. Scenario catalogue (exact parameters)
 
-**Implementation status (2026-11-05):** implemented in code — C-01, C-02, C-03, C-04, C-05, C-06, C-07, P-02, T-01, T-02, T-05, R-02, R-03, M-01, MAP-01, MAP-02, MAP-03 (Haven A), MAP-04 (Haven B). The code's P-03 is a custom drill ("Off-Angle Strafe Confirm", built from a Range screenshot) and is **not** the Comfort-zone Shrink in the table below. The code's R-01 is the Angle Hold drill (the spec's R-02); a pure Reaction Test (spec R-01) is not implemented yet. Still pending: C-08, P-01, T-03, T-04, S-01/02/03, R-01, R-04, M-02, M-03, MAP-05 (Pre-aim Ghost), benchmarks/ranks.
+**Implementation status (2026-11-06):** implemented in code — C-01, C-02, C-03, C-04, C-05, C-06, C-07, P-02, T-01, T-02, T-05, R-02, R-03, M-01, MAP-01, MAP-02, MAP-03 (Haven A), MAP-04 (Haven B), MAP-05 (Haven C), MAP-06 (Haven C Retake), MAP-07 (Haven A Elevation Ladder). The code's P-03 is a custom drill ("Off-Angle Strafe Confirm", built from a Range screenshot) and is **not** the Comfort-zone Shrink in the table below. The code's R-01 is the Angle Hold drill (the spec's R-02); a pure Reaction Test (spec R-01) is not implemented yet. Still pending: C-08, P-01, T-03, T-04, S-01/02/03, R-01, R-04, M-02, M-03, MAP-08 (Pre-aim Ghost), benchmarks/ranks.
 
 Units: distances in **metres**, angles in **degrees from crosshair**, speeds
 in **m/s**, radius = sphere radius. A Valorant head is ~0.12 m radius (the
@@ -386,7 +386,10 @@ Uses the `.blend` maps in `Maps/` exported to glTF (see B9).
 | MAP-02 | **Bind B – Hold** | Hold B site. 6 bots at fixed common angles (Garden, Hookah window, Sand, Center, Elbow, Hell). |
 | MAP-03 | **Haven A – Clear** | Clear A site corners in order. 5 bots (A Long, Default Stack, Heaven window, Hell, Short flank). |
 | MAP-04 | **Haven B – Clear** | Clear B site corners in order. 5 bots (Ramp Top, Left Corner, Default Box, Back Site, Right Flank). Bot positions measured from the map file. |
-| MAP-05 | **Pre-aim Ghost** *(pending)* | Same as above, but a transparent "ideal crosshair line" is drawn along the route. Toggle it off once learned. |
+| MAP-05 | **Haven C – Clear** | Enter C site from its north edge and clear it in order. 5 bots (Entry Right, West Corner, East Corner, Default Stack, Deep South-West). All floors verified against `havenA.bin` (site floor y ~ 4.3). |
+| MAP-06 | **Haven C – Retake** | Spawn deep on C site and retake it. 4 bots (Main Entry, West Corner, Entry Right, Long Approach). The reverse of MAP-05. |
+| MAP-07 | **Haven A – Elevation Ladder** *(drill)* | Vertical-flick drill, not a tactical clear: 4 bots, one per verified level — Sewers 1.9 m, A Long 4.2 m, site 7.7 m, Heaven 10.4 m — ordered low to high. |
+| MAP-08 | **Pre-aim Ghost** *(pending)* | Same as above, but a transparent "ideal crosshair line" is drawn along the route. Toggle it off once learned. |
 
 **Stars (moment mode):** ★ cleared; ★★ cleared under par time; ★★★ under par,
 zero damage taken, all kills yours.
@@ -979,7 +982,8 @@ pending). To add one you touch four places:
 
 Map workshops are different: the course (bots, spawn, yaw) lives in
 `src/preaim_course.cpp` (`initAscentB` / `initBindB` / `initHavenA` /
-`initHavenB`), the dispatch in `main.cpp` `enterPlay()`, and the geometry in
+`initHavenB` / `initHavenC` / `initHavenCRetake` / `initHavenAElevLadder`),
+the dispatch in `main.cpp` `enterPlay()`, and the geometry in
 `assets/maps/*.bin`.
 
 ### The .bin format (what the maps actually are)
@@ -999,6 +1003,76 @@ The loader (`map_mesh.cpp`) checks the magic, the version, and caps
 numVerts/numTris at 2M each plus a file-size check before allocating, so a
 corrupt header cannot crash the game with a huge allocation.
 
+### Map validation (2026-11-06)
+
+All four `.bin` files were validated against the code: header, exact file
+size (`40 + verts*32 + tris*12`), zero NaN/inf, zero non-unit normals,
+bounds match the header, and every bot/spawn floor checked with the exact
+`getFloorHeight` rule (highest floor-flagged surface at or below foot level
++ 0.75 step-up). The Blender suspicion was right — and the `.bin` agrees
+with the `.blend` on nearly every point, so the `.bin` is trusted.
+
+| file | verts / tris | size | floor tris | result |
+|---|---|---|---|---|
+| ascentB.bin | 206,190 / 192,209 | 8,904,628 B exact | 44,659 | clean (67 degenerate slivers, harmless) |
+| bindB.bin | 189,699 / 171,861 | 8,132,740 B exact | 37,286 | clean |
+| havenA.bin | 435,637 / 359,902 | 18,259,248 B exact | 82,424 | clean (17 degenerate slivers) |
+| havenB.bin | 338,407 / 247,166 | 13,795,056 B exact | 51,893 | clean (9 degenerate slivers) |
+
+Fixes applied (old → verified `.bin` value):
+- **Ascent B:** spawn (-20, 1, -50) → (-23, 1, -50), yaw -28° → -10° (old
+  spot is a mesh hole — no floor at all, player stuck); Green Box Top
+  2.2 → 2.95 (was sunk 0.74 m); Boathouse Front 0.0 → -0.83 (floated
+  0.83 m); CT Arch (-4, 1, -88) → (-6, 1, -88), yaw 180° → -156° (old
+  spot is a hole; only a roof at 16.44 above it).
+- **Bind B:** spawn y 3.0 → 3.96 (old y is 0.96 above the floor — beyond
+  the 0.75 step-up, so the player falls through the world); Garden Vista
+  3.0 → 5.33 (buried 2.3 m; the game floor at the exact point is 5.334,
+  a narrow raised strip along x = 102 — the flat Garden floor just west
+  is 5.0); Hookah Window 6.5 → 5.0 (no sill exists at 6.5 — floated
+  1.5 m); Sand Container 3.0 → 3.08; Center Box 3.0 → 3.5 (the 3.5
+  surface is a real ~4 m box-top plateau, verified on a 0.5 m probe).
+- **Haven A:** spawn (90, 0, -30) → (90, 2.56, -36), yaw 11° → 15°
+  (old spot has no floor at all — the player falls through the world;
+  the only triangle there is a non-floor slope at -2.97); A Long
+  0.0 → 4.21 (buried 4.2 m); Default Stack (105, 1, -75) →
+  (102, 7.73, -76) (old spot is a true void — no triangle at all; the
+  site floor is a sloped surface at ~7.7, not ~4.2); Heaven 6.0 → 10.35
+  (buried 4.35 m); Hell (118, 1, -85) → (113, 6.96, -85) (no ground
+  under Heaven — the site floor ends at x ~ 116); Short 0.0 → 1.91
+  (buried 1.9 m under the Sewers floor).
+- **Haven B:** spawn y 1.0 → 1.06; Site Left Corner 3.0 → 2.87 (the bot
+  floated 0.13 m above the 2.869 floor). Everything else was already
+  correct.
+
+New scenarios (all floors verified the same way):
+- **MAP-05 Haven C: Long to Site Clear** — C site is the large flat area
+  at y ~ 4.3 in `havenA.bin` (x 71–113, z -143..-89, ~784 m²). 5 bots,
+  spawn on the site's north edge.
+- **MAP-06 Haven C: Site Retake** — the reverse: spawn deep on the site,
+  clear the entries. 4 bots.
+- **MAP-07 Haven A: Elevation Ladder** — vertical-flick drill: Sewers
+  1.9 m → A Long 4.2 m → site 7.7 m → Heaven 10.4 m, low to high.
+
+Still open (not code bugs — the `.bin` files themselves):
+- **Floor meshes have small holes.** A straight-line walk from any spawn
+  hits a gap within 1–17 m (1–3 m holes scattered across ramps and
+  corridors). The player must weave around them; bots and spawns were all
+  placed on solid points, so the courses still work. Filling the holes
+  needs a re-export (no Blender exporter script exists yet matching
+  `map_mesh.h`).
+- **No Ascent A or Bind A geometry.** `ascentB.bin` / `bindB.bin` contain
+  only the B half of each map (one flat component each — the B site), so no
+  A-site course can be built from them. The `.blend` sources may hold the
+  full maps; that needs a new export.
+- **Haven C identity is by elimination** (A = the 7.7 m area, B = the 3.0 m
+  west area at `havenB.bin`'s site level, so the 4.3 m area is C). Confirm
+  the site letter in-game.
+- **Haven A walk to the site is broken in the `.bin`:** the A Long ramp
+  has a hole at (92, -45) and the Short route crosses a pit — the player
+  can shoot every bot from the spawn (all within 57 m), but cannot walk
+  the full route. Same root cause as the holes above.
+
 ### Code rules (and where they are broken)
 
 - **Intended:** Win32 code lives only in `input.cpp` and `main.cpp`. The
@@ -1008,14 +1082,16 @@ corrupt header cannot crash the game with a huge allocation.
   `#include <cstdint>` (compiles on MSVC only via transitive includes).
   Both are small fixes, not done yet.
 
-### Known gaps (honest list, 2026-11-05)
+### Known gaps (honest list, 2026-11-06)
 
-- **Haven A bot heights are suspect.** The code puts ground bots at y = 0–1,
-  but the map file's A-site floor sits several metres higher in Blender
-  coords. If the .bin matches the .blend (expected), those bots are buried
-  under the floor: invisible, but still shootable through it. Verify from
-  `havenA.bin` before trusting the Haven A workshop. Same check pending for
-  the Ascent spawn point and the Bind Garden/Hookah bots.
+- **Map validation is done (2026-11-06) — see the section below.** The old
+  "Haven A bot heights are suspect" item is closed: every bot/spawn Y in
+  the four courses was checked against the .bin floor data with the exact
+  `getFloorHeight` rule (flag-1 triangle, or first-vertex normal y > 0.65),
+  and all wrong values were fixed. Remaining .bin issues are holes in the
+  floor meshes (a straight-line walk from spawn hits a gap within 1–17 m
+  on every map — the player must weave around 1–3 m holes) and the
+  missing Ascent A / Bind A geometry (see below).
 - **Scoring does not match the B4 formulas yet** (no accuracy² multiplier,
   speed bonus is a 40/20 step instead of the formula, tracking score is
   `onTargetTime × 250` instead of the B4 expression).

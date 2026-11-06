@@ -183,6 +183,33 @@ static const std::vector<ScenarioInfo> kScenarios = {
         "Push the B corridor up the ramp onto Haven B Site. Clear the ramp-top duel, site corners, the default box and the back site. Real 3D geometry & Jett humanoid bots.",
         "Pre-aim practice for B site: same crosshair-height discipline as Haven A, on your second-worst map.",
         60.0f, 0.14f, 15.0f, 5, false, true
+    },
+    ScenarioInfo{
+        ScenarioId::HavenC_PreAim,
+        "MAP-05",
+        "Haven C: Long to Site Clear",
+        ScenarioCategory::MapPreAim,
+        "Enter Haven C site from its north edge and clear it in order: entry right, both site corners, the default stack, then deep south-west. All bot floors verified against havenA.bin (site floor y ~ 4.3).",
+        "Site-entry pre-aim on a third Haven site: same corner discipline as MAP-03/04, new angles.",
+        60.0f, 0.14f, 15.0f, 5, false, true
+    },
+    ScenarioInfo{
+        ScenarioId::HavenC_Retake,
+        "MAP-06",
+        "Haven C: Site Retake",
+        ScenarioCategory::MapPreAim,
+        "Spawn deep on Haven C site and retake it: clear the main entry, the west corner, the right entry, then the long approach. The reverse of MAP-05 — defending angles instead of attacking ones.",
+        "Retake pre-aim: holding entry angles from inside the site instead of clearing them from outside.",
+        60.0f, 0.14f, 15.0f, 4, false, true
+    },
+    ScenarioInfo{
+        ScenarioId::HavenA_ElevLadder,
+        "MAP-07",
+        "Haven A: Elevation Ladder (Vertical Flick Drill)",
+        ScenarioCategory::MapPreAim,
+        "A vertical-flick drill on Haven A, not a tactical clear: four bots, one per verified level — Sewers 1.9 m, A Long 4.2 m, site 7.7 m, Heaven 10.4 m — ordered low to high so each rep is a bigger upward flick.",
+        "Trains pure vertical crosshair placement across an 8.4 m height range on real map geometry.",
+        60.0f, 0.14f, 15.0f, 4, false, true
     }
 };
 

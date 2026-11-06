@@ -9,6 +9,11 @@ enum class MapCourseId {
     BindB_LongClear,  // B Long / Garden to B Site & Hookah
     HavenA_Clear,     // A Long to Heaven & Site Clear
     HavenB_Clear,     // B Corridor to B Site Entry & Clear
+    // Added 2026-11-06 (map-validation round). All positions verified
+    // against the .bin floor data (see README "Map validation").
+    HavenC_Clear,     // C site entry: north edge into the 4.3 m site floor
+    HavenC_Retake,    // C site retake: spawn deep, clear the entries
+    HavenA_ElevLadder,// Vertical-flick drill: 1.9 -> 4.2 -> 7.7 -> 10.4 m
     Count
 };
 
@@ -78,6 +83,9 @@ private:
     void initBindB();
     void initHavenA();
     void initHavenB();
+    void initHavenC();
+    void initHavenCRetake();
+    void initHavenAElevLadder();
 
     MapCourseId m_courseId = MapCourseId::AscentB_Clear;
     Vec3        m_spawnPos{};

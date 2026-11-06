@@ -33,6 +33,10 @@ enum class ScenarioId {
     ReactiveTrack,
     PeekersAdvantage,
     HavenB_PreAim,
+    // Added 2026-11-06 (map-validation round). Same rule: append only.
+    HavenC_PreAim,
+    HavenC_Retake,
+    HavenA_ElevLadder,
     Count
 };
 
@@ -40,7 +44,10 @@ inline bool isMapPreAim(ScenarioId id) {
     return id == ScenarioId::AscentB_PreAim ||
            id == ScenarioId::BindB_PreAim ||
            id == ScenarioId::HavenA_PreAim ||
-           id == ScenarioId::HavenB_PreAim;
+           id == ScenarioId::HavenB_PreAim ||
+           id == ScenarioId::HavenC_PreAim ||
+           id == ScenarioId::HavenC_Retake ||
+           id == ScenarioId::HavenA_ElevLadder;
 }
 
 const char* getCategoryName(ScenarioCategory cat);
