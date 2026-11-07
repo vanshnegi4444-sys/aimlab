@@ -45,14 +45,24 @@ RoutineManager::RoutineManager() {
         });
     }
 
-    // Block 5: Angle Holding & Reaction (2 sets of AngleHold)
+    // Block 5: Angle Holding & Reaction (2 sets of AngleHold + 2 sets of
+    // Peeker's Advantage, exactly as the D3 daily routine specifies)
     for (int i = 1; i <= 2; ++i) {
         m_items.push_back({
             ScenarioId::AngleHold,
-            i, 2, 5, 6,
+            i, 4, 5, 6,
             "Block 5: Angle Holding",
             "Hold crosshair slightly off the edge. Click the instant the bot peeks into crosshair.",
             "Master defensive duel timing so you aren't shot first."
+        });
+    }
+    for (int i = 3; i <= 4; ++i) {
+        m_items.push_back({
+            ScenarioId::PeekersAdvantage,
+            i, 4, 5, 6,
+            "Block 5: Peeker's Advantage",
+            "Swing out with A/D, stop, shoot before the bot's 200 ms reaction. Swing back to hide.",
+            "Wins the timing of attacking duels: swing, stop, first bullet."
         });
     }
 

@@ -174,14 +174,26 @@ static void ensureMapLoaded(const std::string& path) {
 // ---------------------------------------------------------------------------
 // Mode transitions
 // ---------------------------------------------------------------------------
+static int g_lastSpikeBeepSec = -1;
+
 static void enterPlay(Trainer& trainer, Camera& camera, const Settings& s, ScenarioId scId) {
     g_isMapCourseActive = isMapPreAim(scId);
+    g_lastSpikeBeepSec  = -1;
 
     if (g_isMapCourseActive) {
         MapCourseId cid = MapCourseId::AscentB_Clear;
         if (scId == ScenarioId::BindB_PreAim) cid = MapCourseId::BindB_LongClear;
         else if (scId == ScenarioId::HavenA_PreAim) cid = MapCourseId::HavenA_Clear;
         else if (scId == ScenarioId::HavenB_PreAim) cid = MapCourseId::HavenB_Clear;
+        else if (scId == ScenarioId::HavenC_PreAim) cid = MapCourseId::HavenC_Clear;
+        else if (scId == ScenarioId::HavenC_Retake) cid = MapCourseId::HavenC_Retake;
+        else if (scId == ScenarioId::HavenA_ElevLadder) cid = MapCourseId::HavenA_ElevLadder;
+        else if (scId == ScenarioId::AscentB_Defuse) cid = MapCourseId::AscentB_Defuse;
+        else if (scId == ScenarioId::BindB_Defuse) cid = MapCourseId::BindB_Defuse;
+        else if (scId == ScenarioId::HavenA_Defuse) cid = MapCourseId::HavenA_Defuse;
+        else if (scId == ScenarioId::AscentB_Clutch1v5) cid = MapCourseId::AscentB_Clutch1v5;
+        else if (scId == ScenarioId::BindB_HeadHeight) cid = MapCourseId::BindB_HeadHeight;
+        else if (scId == ScenarioId::AscentB_AnchorHold) cid = MapCourseId::AscentB_AnchorHold;
 
         g_preAimCourse.start(cid, glfwGetTime());
         ensureMapLoaded(g_preAimCourse.mapBinPath());
@@ -357,7 +369,25 @@ int main() {
                 g_player.update(dt, pInput, camera, &g_mapMesh);
                 camera.pos = g_player.eyePos();
                 g_preAimCourse.update(now, dt, g_player.eyePos(), camera.pitchDeg, camera.yawDeg, &g_mapMesh);
-                if (g_preAimCourse.isComplete()) {
+
+                // Audible countdown beep for the final 10s of a spike timer
+                if (g_preAimCourse.hasTimeLimit() && !g_preAimCourse.isComplete() && !g_preAimCourse.isFailed()) {
+                    int remSec = static_cast<int>(std::ceil(g_preAimCourse.timeRemaining(now)));
+                    if (remSec >= 1 && remSec <= 10 && remSec != g_lastSpikeBeepSec) {
+                        g_lastSpikeBeepSec = remSec;
+                        if (s.enableHitSound) {
+                            audio::playSpikeBeep(s.hitSoundVolume * 0.65f);
+                        }
+                    }
+                }
+
+                // A map course ends on a clear OR a fail (spike detonated
+                // / clutch lost — 2026-11-06 tactical round). The results
+                // screen shows which one it was.
+                if (g_preAimCourse.isComplete() || g_preAimCourse.isFailed()) {
+                    if (g_preAimCourse.isFailed() && s.enableHitSound) {
+                        audio::playFail(s.hitSoundVolume);
+                    }
                     enterPreAimResults();
                 }
             } else {
@@ -426,7 +456,7 @@ int main() {
         } else if (g_mode == Mode::Play) {
             if (g_isMapCourseActive) {
                 if (s.showOverlay)
-                    ui::drawPreAimOverlay(g_preAimCourse, s, g_player);
+                    ui::drawPreAimOverlay(g_preAimCourse, s, g_player, now);
                 ImVec2 ds = ImGui::GetIO().DisplaySize;
                 ui::drawPreAimCrosshair(s, g_preAimCourse, g_player, ds.x, ds.y);
             } else {

@@ -18,6 +18,8 @@ HWAVEOUT g_hWaveOut = nullptr;
 std::vector<short> g_hitBuffer;
 std::vector<short> g_headshotBuffer;
 std::vector<short> g_stopBuffer;
+std::vector<short> g_spikeBeepBuffer;
+std::vector<short> g_failBuffer;
 
 // Voice pool for overlapping sounds
 constexpr int kPoolSize = 16;
@@ -117,6 +119,12 @@ bool init() {
     // 3. Counter-strafe stop cue: pleasant subtle 800Hz blip (15ms)
     g_stopBuffer = generateTone(800.0f, 0.0f, 0.020f, 150.0f);
 
+    // 4. Spike countdown beep: crisp 1050Hz + 2100Hz electronic beep (40ms)
+    g_spikeBeepBuffer = generateTone(1050.0f, 2100.0f, 0.040f, 95.0f);
+
+    // 5. Fail / Spike detonation cue: deep 180Hz + 135Hz resonant thud/buzzer (260ms)
+    g_failBuffer = generateTone(180.0f, 135.0f, 0.260f, 12.0f);
+
     return true;
 }
 
@@ -143,6 +151,14 @@ void playHeadshot(float volume) {
 
 void playStopCue() {
     playBuffer(g_stopBuffer, 0.4f);
+}
+
+void playSpikeBeep(float volume) {
+    playBuffer(g_spikeBeepBuffer, volume);
+}
+
+void playFail(float volume) {
+    playBuffer(g_failBuffer, volume);
 }
 
 } // namespace audio

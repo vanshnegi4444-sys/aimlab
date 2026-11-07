@@ -399,7 +399,8 @@ static bool isHumanoidDrill(ScenarioId id) {
            id == ScenarioId::ValorantStrafe ||
            id == ScenarioId::CounterStrafeDrill ||
            id == ScenarioId::AngleHold ||
-           id == ScenarioId::OffAngleStrafeConfirm;
+           id == ScenarioId::OffAngleStrafeConfirm ||
+           id == ScenarioId::PeekersAdvantage;
 }
 
 void Renderer::renderTargets(const Mat4& viewProj, const Trainer& trainer, const Camera& cam, MapMesh* botMesh) {
