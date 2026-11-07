@@ -1,0 +1,27 @@
+name: 'Feature Request / Scenario Idea'
+description: 'Suggest an idea or new map pre-aim workshop'
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: Have an idea for a drill, tactical angle workshop, or engine improvement? Let us know!
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a specific aiming problem?
+      description: E.g., "I struggle with micro-adjustments against jumping duelists on Split."
+    validations:
+      required: false
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the solution or new scenario you'd like
+      description: Details about angles, bots, timings, maps, or engine mechanics.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Any alternative solutions or features considered?
+    validations:
+      required: false

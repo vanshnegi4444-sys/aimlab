@@ -1,0 +1,38 @@
+name: 'Bug Report'
+description: 'File a bug report for ValoAim'
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting a bug! Please fill out the details below.
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      placeholder: Windows 11 64-bit
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps To Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Run valo-aim.exe
+        2. Select MAP-09 Ascent B Defuse
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs Actual Behavior
+    validations:
+      required: false
